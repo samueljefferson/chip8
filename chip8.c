@@ -24,6 +24,133 @@ unsigned short stack[16];      // stack in 16 16 bit values
 int keyboard = 0;              // contains flags for all keys from 0-F
 
 //char key =
+int processInstr(int instr) {
+  // convert the instruction
+  int nnn = 0;
+  int n = 0;
+  int kk = 0;
+
+  // get first nibble of instruction
+  int first  = instr >> 12;
+  int fourth = instr & 0x000F;
+  int threeFour = instr & 0x00FF;
+  // mvprintw(2,0, "%X", first);
+  switch (first) {
+    case 0:
+      if (instr & 0x00E0 == 0x00E0) {
+        // CLS
+        I_00E0(instr);
+      } else if (instr & 0x00EE == 0x00EE) {
+        // RET
+        I_00EE(instr);
+      }
+      // TODO SYS addr
+      break;
+
+    case 1:
+      I_1nnn(instr);
+      break;
+
+    case 2:
+      I_2nnn(instr);
+      break;
+
+    case 3:
+      I_3xkk(instr);
+      break;
+
+    case 4:
+      I_4xkk(instr);
+      break;
+
+    case 5:
+      I_5xy0(instr);
+      break;
+
+    case 6:
+      I_6xkk(instr);
+      break;
+
+    case 7:
+      I_7xkk(instr);
+      break;
+
+    case 8:
+      if (fourth & 0x0000 == 0x0000) {
+        I_8xy0(instr);
+      } else if (fourth & 0x0001 == 0x0001) {
+        I_8xy1(instr);
+      } else if (fourth & 0x0002 == 0x0002) {
+        I_8xy2(instr);
+      } else if (fourth & 0x0003 == 0x0003) {
+        I_8xy3(instr);
+      } else if (fourth & 0x0004 == 0x0004) {
+        I_8xy4(instr);
+      } else if (fourth & 0x0005 == 0x0005) {
+        I_8xy5(instr);
+      } else if (fourth & 0x0006 == 0x0006) {
+        I_8xy6(instr);
+      } else if (fourth & 0x0007 == 0x0007) {
+        I_8xy7(instr);
+      } else if (fourth & 0x000E == 0x000E) {
+        I_8xyE(instr);
+      }
+      break;
+
+    case 9:
+      I_9xy0(instr);
+      break;
+
+    case 10:
+      I_Annn(instr);
+      break;
+
+    case 11:
+      I_Bnnn(instr);
+      break;
+
+    case 12:
+      I_Cxkk(instr);
+      break;
+
+    case 13:
+      I_Dxyn(instr);
+      break;
+
+    case 14:
+      if (fourth & 0x000E == 0x000E) {
+        I_Ex9E(instr);
+      } else {
+        I_ExA1(instr);
+      }
+      break;
+
+    case 15:
+      if (threeFour & 0x0007 == 0x0007) {
+        I_Fx07(instr);
+      } else if (threeFour & 0x000A == 0x000A) {
+        I_Fx0A(instr);
+      } else if (threeFour & 0x0015 == 0x0015) {
+        I_Fx15(instr);
+      } else if (threeFour & 0x0018 == 0x0018) {
+        I_Fx18(instr);
+      } else if (threeFour & 0x001E == 0x001E) {
+        I_Fx1E(instr);
+      } else if (threeFour & 0x0029 == 0x0029) {
+        I_Fx29(instr);
+      } else if (threeFour & 0x0033 == 0x0033) {
+        I_Fx33(instr);
+      } else if (threeFour & 0x0055 == 0x0055) {
+        I_Fx55(instr);
+      } else if (threeFour & 0x0065 == 0x0065) {
+        I_Fx65(instr);
+      }
+      break;
+
+    default:
+      break;
+  }
+}
 
 void *kb_input(void *ptr) {
   // printw("test\n");
@@ -123,8 +250,41 @@ int main(int argc, char** argv) {
   pthread_t id;
   pthread_create(&id, NULL, kb_input, NULL);
 
-  while (1) {
+  // load the rom
+  endwin();
+  loadRom(fileName);
 
+
+  // printw("PC %X", PC);
+  // mvprintw(1,0, "%X", currentInstr);
+
+  // mvprintw(2,0, "%X", memory[PC]);
+  // mvprintw(3,0, "currentInstr%X", memory[PC+1]);
+  // mvprintw(4,0, "%X", memory[PC+2]);
+  // refresh();
+  int currentInstr;
+  while (1) {
+    if (testing == 1) {
+      mvprintw(35,0, "                                                       ");
+    }
+    currentInstr = readInstr();
+    processInstr(currentInstr);
+
+    // show register information
+    if (testing == 1) {
+      mvprintw(36,0, "%X", currentInstr);
+      mvprintw(37,0, "PC %X", PC);
+      mvprintw(37,10, "SP %X", SP);
+      mvprintw(38,0, "I %X", I);
+      int col = 39;
+      int i = 0;
+      for (i = 0; i < 16; i++) {
+        mvprintw(38+i,0, "V%X %X", i, V[i]);
+      }
+      refresh();
+
+    }
+    // getch();
   }
   // mvaddch(0, 0, ' ' | A_REVERSE); // OR of space and reverse
   // mvaddch(0, 63, ' ' | A_REVERSE);
@@ -222,6 +382,10 @@ void I_00EE(int instr) {
 
 void I_1nnn(int instr) {
   // set PC to nnn
+  if (testing) {
+    mvprintw(35,0, "Set PC to %X", instr - 0x1000);
+    refresh();
+  }
   PC = instr - 0x1000;
 }
 
@@ -243,6 +407,9 @@ void I_3xkk(int instr) {
   // get kk
   int kk = (instr & 0x00FF);
   // skip next instruction if Vx = kk
+  if (testing) {
+    mvprintw(35,0, "skip next instruction if V%X(%X) = %X", x, V[x], kk);
+  }
   if (V[x] == kk) {
     PC += 2;
   }
@@ -274,6 +441,11 @@ void I_6xkk(int instr) {
   // set Vx = kk
   int x = (instr & 0x0F00) >> 8;
   int kk = instr & 0x00FF;
+
+  if (testing) {
+    mvprintw(35,0, "Instruction 6xkk: set V%X from %X to %X\n", x, V[x], kk);
+    refresh();
+  }
   V[x] = kk;
 }
 
@@ -281,9 +453,18 @@ void I_7xkk(int instr) {
   // set Vx += kk
   int x = (instr & 0x0F00) >> 8;
   int kk = instr & 0x00FF;
+  if (testing) {
+    mvprintw(35,0, "Set V%X = %X + %X", x, V[x], kk);
+  }
   V[x] += kk;
 }
 
+void I_8xy0(int instr) {
+  // Vx = Vy
+  int x = (instr & 0x0F00) >> 8;
+  int y = (instr & 0x00F0) >> 4;
+  V[x] = V[y];
+}
 void I_8xy1(int instr) {
   // Vx = Vx | Vy
   int x = (instr & 0x0F00) >> 8;
@@ -388,7 +569,8 @@ void I_Annn(int instr) {
   instr -= 40960;
 
   if (testing) {
-    printf("Instruction Annn: set I from %X to %X\n", I, instr);
+    mvprintw(35,0, "Instruction Annn: set I from %X to %X\n", I, instr);
+    refresh();
   }
 
   I = instr;
@@ -414,6 +596,10 @@ void I_Dxyn(int instr) {
   int x = (instr & 0x0F00) >> 8;
   int y = (instr & 0x00F0) >> 4;
   int n = (instr & 0x000F);
+
+  if (testing == 1) {
+    mvprintw(35,0, "Display %X-byte sprite starting at (V%X, V%X)", n, x, y);
+  }
   x = V[x];
   y = V[y];
 
@@ -447,6 +633,35 @@ void I_Dxyn(int instr) {
 
 void I_Ex9E(int instr) {
   // skip next instruction if key == Vx
+  int x = (instr & 0x0F00) >> 8;
+  if (testing) {
+    mvprintw(35,0, "Skip next instruction if key %X is being pressed", x);
+  }
+  int temp = 1;
+  temp = temp << x;
+  int temp_keyboard = keyboard;
+  if (temp_keyboard & temp == temp) {
+    PC += 2;
+  }
+}
+
+void I_ExA1(int instr) {
+  // skip next instruction if key != Vx
+  int x = (instr & 0x0F00) >> 8;
+  if (testing) {
+    mvprintw(35,0, "Skip next instruction if key %X isn't being pressed", x);
+  }
+  int temp = 1;
+  temp = temp << x;
+  int temp_keyboard = keyboard;
+  if (temp_keyboard & temp != temp) {
+    PC += 2;
+  }
+}
+
+void I_Fx07(int instr) {
+  // set Vx = delay timer value
+  // TODO
 }
 
 void I_Fx0A(int instr) {
@@ -457,10 +672,25 @@ void I_Fx0A(int instr) {
   V[x] = num;
 }
 
+void I_Fx15(int instr) {
+  // set delay timer = Vx
+  // TODO
+}
+
+void I_Fx18(int instr) {
+  // set sound timer = Vx
+  // TODO
+}
+
 void I_Fx1E(int instr) {
   // I += Vx
   int x = (instr & 0x0F00) >> 8;
   I += x;
+}
+
+void I_Fx29(int instr) {
+  // set I = location of sprit for digit Vx
+  // TODO
 }
 
 void I_Fx33(int instr) {
@@ -502,10 +732,12 @@ int readInstr() {
   instr += memory[PC + 1];  // get second byte
   //printf("%x\n", instr);
   // TODO update PC here?
+  PC += 2;
   return instr;
 }
 
 void loadRom(char* fileName) {
+  // printf("%s\n", fileName);
   int fd = open(fileName, O_RDONLY);
   //printf("%d\n", fd); // TODO remove
 
@@ -518,12 +750,13 @@ void loadRom(char* fileName) {
     status = read(fd, buffer, 1);
     memory[current] = buffer[0];
 
-    //printf("%c, %d\n", memory[current], current);
-    //printf("%d ", current);
-    //printHex(memory[current]);
-    //printf("\t");
-    //printBinary(memory[current]);
-    //printf("\n");
+    // printf("%X\t%X\n", current, memory[current]);
+    // printf("%c, %d\n", memory[current], current);
+    // printf("%d ", current);
+    // printHex(memory[current]);
+    // printf("\t");
+    // printBinary(memory[current]);
+    // printf("\n");
 
     current++;
   }

@@ -1,5 +1,5 @@
 all:
-	bash -c "resize -s 32 64"
+	bash -c "resize -s 55 64"
 	'clear'
 	gcc -o chip8 chip8.c -lncurses -lpthread
 

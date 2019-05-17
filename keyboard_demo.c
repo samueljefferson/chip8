@@ -1,10 +1,11 @@
+// needs to be run with sudo
+
 #include <stdio.h>
 #include <ncurses.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
 #include <linux/input.h>
-
 
 int compare(int num, int check)
 {
