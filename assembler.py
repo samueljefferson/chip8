@@ -23,7 +23,9 @@ fo_source.close()
 buffer = []
 for line in lines:
     check = line[:4]
-    if check.isdigit():
+    if check[0].isdigit() or check[0].isalpha():
+        # print(int(check[:2], 16))
+        # print(int(check[2:], 16))
         buffer.append(int(check[:2], 16))
         buffer.append(int(check[2:], 16))
 
