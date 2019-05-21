@@ -932,10 +932,14 @@ void I_Fx1E(int instr) {
 void I_Fx29(int instr) {
   // set I = location of sprit for digit Vx
   int x = (instr & 0x0F00) >> 8;
+  x = V[x];
   I = x*5;
+  
   // TODO
   if (testing) {
     // mvprintw(35,0, "I_Fx29 Unfinished Instruction");
+    // mvprintw(34,0, "                    ");
+    // mvprintw(34,0, "x=%X, I=%D", x, I);
     mvprintw(35,0, "I_Fx29: I = V[%x]=%X, %X*5 = %X", x, V[x], V[x], V[x]*5);
     refresh();
   }
