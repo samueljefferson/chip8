@@ -29,7 +29,7 @@ int DT = 0;                    // delay timer
 int ST = 0;                    // sound timer
 
 int keyboard = 0;              // contains flags for all keys from 0-F
-int step_mode = 1;
+int step_mode = 0;
 int stop = 0;
 //char key =
 
@@ -951,15 +951,19 @@ void I_Fx33(int instr) {
   // store BCD value of Vx in
   // memory[I], memory[I + 1], memory[I + 2]
   int x = (instr & 0x0F00) >> 8;
+  x = V[x];
+
   // ones
-  memory[I] = V[x] % 10;
+  memory[I+2] = x % 10;
+
   // tens
-  memory[I + 1] = V[x] % 100 - memory[I];
+  memory[I+1] = (x / 10) % 10;
+
   // hundreds
-  memory[I + 2] = V[x] % 1000 - memory[I] - memory[I + 1];
+  memory[I] = x / 100;
 
   if (testing) {
-    mvprintw(35,0, "I_Fx33: I = BCD of V%x(%X) BCD=%X%X%X", x, V[x], memory[I], memory[I+1], memory[I+2]);
+    mvprintw(35,0, "I_Fx33: I = BCD of V%x(%X) BCD=%X,%X,%X", x, V[x], memory[I], memory[I+1], memory[I+2]);
     refresh();
   }
 
