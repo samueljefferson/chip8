@@ -271,6 +271,67 @@ void *kb_input(void *ptr) {
   return 0;
 }
 
+int drawScreen(int keyboard, int y, int x)
+{
+  int i = 0;
+  for (i = 0; i < 16; i++)
+  {
+    switch(i)
+    {
+      case 0:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+3,x+1, "#") : mvprintw(y+3,x+1, "%d", i);
+        break;
+      case 1:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+0,x+0, "#") : mvprintw(y+0,x+0, "%d", i);
+        break;
+      case 2:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+0,x+1, "#") : mvprintw(y+0,x+1, "%d", i);
+        break;
+      case 3:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+0,x+2, "#") : mvprintw(y+0,x+2, "%d", i);
+        break;
+      case 4:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+1,x+0, "#") : mvprintw(y+1,x+0, "%d", i);
+        break;
+      case 5:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+1,x+1, "#") : mvprintw(y+1,x+1, "%d", i);
+        break;
+      case 6:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+1,x+2, "#") : mvprintw(y+1,x+2, "%d", i);
+        break;
+      case 7:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+2,x+0, "#") : mvprintw(y+2,x+0, "%d", i);
+        break;
+      case 8:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+2,x+1, "#") : mvprintw(y+2,x+1, "%d", i);
+        break;
+      case 9:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+2,x+2, "#") : mvprintw(y+2,x+2, "%d", i);
+        break;
+      case 10:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+3,x+0, "#") : mvprintw(y+3,x+0, "%X", i);
+        break;
+      case 11:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+3,x+2, "#") : mvprintw(y+3,x+2, "%X", i);
+        break;
+      case 12:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+0,x+3, "#") : mvprintw(y+0,x+3, "%X", i);
+        break;
+      case 13:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+1,x+3, "#") : mvprintw(y+1,x+3, "%X", i);
+        break;
+      case 14:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+2,x+3, "#") : mvprintw(y+2,x+3, "%X", i);
+        break;
+      case 15:
+        (keyboard>>i)&1 == 1 ? mvprintw(y+3,x+3, "#") : mvprintw(y+3,x+3, "%X", i);
+        break;
+      default:
+        break;
+    }
+  }
+}
+
 int main(int argc, char** argv) {
   // printf("SP = %d\n", SP);
   // init();
@@ -322,13 +383,13 @@ int main(int argc, char** argv) {
     PC += 2;
 
 
-    if (testing == 1) {
-      mvprintw(30,0, "                  ");
-      mvprintw(31,0, "                  ");
-      mvprintw(30,0, "Instr=%d", currentInstr);
-      mvprintw(31,0, "Instr=%X", currentInstr);
-      refresh();
-    }
+    // if (testing == 1) {
+    //   mvprintw(30,0, "                  ");
+    //   mvprintw(31,0, "                  ");
+    //   mvprintw(30,0, "Instr=%d", currentInstr);
+    //   mvprintw(31,0, "Instr=%X", currentInstr);
+    //   refresh();
+    // }
     // processInstr(currentInstr);
 
     // show register information
@@ -345,7 +406,16 @@ int main(int argc, char** argv) {
       } else {
         mvprintw(36,16, "step mode off");
       }
-
+      // // keyboard
+      // mvprintw(38,20, "123C");
+      // mvprintw(39,20, "456D");
+      // mvprintw(40,20, "789E");
+      // mvprintw(41,20, "A0BF");
+      // // show keys pressed
+      // if (keyboard & 2 == 2) {
+      //   mvprintw(38,20, "#");
+      // }
+      drawScreen(keyboard, 38, 20);
 
       mvprintw(37,0, "PC %X", PC);
       mvprintw(37,10, "SP %X", stack_pointer);
@@ -408,11 +478,16 @@ void lookupInstr(int instr) {
 
 void I_0nnn(int instr) {
   // TODO
+  if (testing) {
+    mvprintw(35,0, "I_0nnn: not implemented yet");
+    refresh();
+  }
 }
 
 void I_00E0(int instr) {
-  // clear display
-  clear();
+  // clear display 64x32
+  // clear();
+
   if (testing) {
     mvprintw(35,0, "I_00E0: clear display");
     refresh();
@@ -423,7 +498,7 @@ void I_00EE(int instr) {
   // return from subroutine
   // set PC to stack address and decrement SP
   if (testing) {
-    mvprintw(35,0, "RET: set PC to %X and decrement SP", stack[SP]);
+    mvprintw(35,0, "I_00EE: RET, set PC to %X and decrement SP", stack[SP]);
     refresh();
   }
   PC = stack[stack_pointer];
@@ -434,7 +509,7 @@ void I_1nnn(int instr) {
   // set PC to nnn
   int nnn = instr & 0x0FFF;
   if (testing) {
-    mvprintw(35,0, "JMP: set PC to %X", nnn);
+    mvprintw(35,0, "I_1nnn: JMP, set PC to %X", nnn);
     refresh();
   }
   PC = nnn;
@@ -453,7 +528,7 @@ void I_2nnn(int instr) {
   // set PC to nnn
   PC = nnn;
   if (testing) {
-    mvprintw(35,0, "CALL: call subroutine at %X, SP++, stack[%X] = PC(%X)", nnn, stack_pointer, PC);
+    mvprintw(35,0, "I_2nnn: call subroutine at %X, SP++, stack[%X] = PC(%X)", nnn, stack_pointer, PC);
     refresh();
   }
 }
@@ -467,7 +542,7 @@ void I_3xkk(int instr) {
   int kk = (instr & 0x00FF);
   // skip next instruction if Vx = kk
   if (testing) {
-    mvprintw(35,0, "skip next instruction if V[%X](%X) = %X", x, V[x], kk);
+    mvprintw(35,0, "I_3xkk: skip next instruction if V[%X](%X) = %X", x, V[x], kk);
     refresh();
   }
   if (V[x] == kk) {
@@ -483,7 +558,7 @@ void I_4xkk(int instr) {
   int kk = (instr & 0x00FF);
 
   if (testing) {
-    mvprintw(35,0, "skip next instruction if V%X(%X) != %X", x, V[x], kk);
+    mvprintw(35,0, "I_4xkk: skip next instruction if V%X(%X) != %X", x, V[x], kk);
     refresh();
   }
 
@@ -501,7 +576,7 @@ void I_5xy0(int instr) {
     PC += 2;
   }
   if (testing) {
-    mvprintw(35,0, "skip next instruction if V%x = V%x (%X = %X)", x, y, V[x], V[y]);
+    mvprintw(35,0, "I_5xy0: skip next instruction if V%x = V%x (%X = %X)", x, y, V[x], V[y]);
     refresh();
   }
 }
@@ -523,7 +598,7 @@ void I_7xkk(int instr) {
   int x = (instr & 0x0F00) >> 8;
   int kk = instr & 0x00FF;
   if (testing) {
-    mvprintw(35,0, "Set V%X = %X + %X", x, V[x], kk);
+    mvprintw(35,0, "I_7xkk: set V%X = %X + %X", x, V[x], kk);
     refresh();
   }
   V[x] += kk;
@@ -540,6 +615,11 @@ void I_8xy1(int instr) {
   int x = (instr & 0x0F00) >> 8;
   int y = (instr & 0x00F0) >> 4;
   V[x] = V[x] | V[y];
+
+  if (testing) {
+    mvprintw(35,0, "I_8xy1: set V%X = V%X | V%X", x, x, y);
+    refresh();
+  }
 }
 
 void I_8xy2(int instr) {
@@ -559,6 +639,10 @@ void I_8xy3(int instr) {
   int x = (instr & 0x0F00) >> 8;
   int y = (instr & 0x00F0) >> 4;
   V[x] = V[x] ^ V[y];
+  if (testing) {
+    mvprintw(35,0, "I_8xy3: V%X = V%X ^ V%X", x, x, y);
+    refresh();
+  }
 }
 
 void I_8xy4(int instr) {
@@ -590,6 +674,11 @@ void I_8xy5(int instr) {
     V[0xF] = 0;
   }
   V[x] -= V[y];
+
+  if (testing) {
+    mvprintw(35,0, "I_8xy5: V%X -= V%X, if V%x > V%X then VF=0", x, y, x, y);
+    refresh();
+  }
 }
 
 void I_8xy6(int instr) {
@@ -605,6 +694,10 @@ void I_8xy6(int instr) {
     V[0xf] = 0;
   }
   V[x] = V[x] >> 1;
+  if (testing) {
+    mvprintw(35,0, "I_8xy6: V%X >> 1, if first digit is 1 set VF=1 else VF=0", x);
+    refresh();
+  }
 }
 
 void I_8xy7(int instr) {
@@ -618,12 +711,15 @@ void I_8xy7(int instr) {
     V[0xF] = 0;
   }
   V[x] = V[y] - V[x];
-
+  if (testing) {
+    mvprintw(35,0, "I_8xy7: V%X = V%X - V%X, if V%X>V%X then VF=1, else VF=0", x, y, x, y, x);
+    refresh();
+  }
 }
 
 void I_8xyE(int instr) {
   // shift Vx left 1
-  // if left most bit is 1 then Vf = 1, else Vf = 0
+  // if left most bit is 1 then VF = 1, else VF = 0
   int x = (instr & 0x0F00) >> 8;
   int bit = V[x] & 0x80;
   if (bit) {
@@ -632,6 +728,11 @@ void I_8xyE(int instr) {
     V[0xf] = 0;
   }
   V[x] = V[x] << 1;
+
+  if (testing) {
+    mvprintw(35,0, "I_8xyE: V%X << 1, if left most bit is 1 then VF = 1, else VF = 0 ", x);
+    refresh();
+  }
 }
 
 void I_9xy0(int instr) {
@@ -640,7 +741,7 @@ void I_9xy0(int instr) {
   int y = (instr & 0x00F0) >> 4;
 
   if (testing) {
-    mvprintw(35,0, "SKIP: skip next instruction if V%x(%X) != V%x(%X)", x, V[x], y, V[y]);
+    mvprintw(35,0, "I_9xy0: skip next instruction if V%x(%X) != V%x(%X)", x, V[x], y, V[y]);
     refresh();
   }
 
@@ -653,8 +754,9 @@ void I_Annn(int instr) {
   // set I to nnn
   // instr -= 40960;
   int nnn = instr & 0x0FFF;
+
   if (testing) {
-    mvprintw(35,0, "Instruction Annn: set I from %X to %X\n", I, nnn);
+    mvprintw(35,0, "I_Annn: set I from %X to %X\n", I, nnn);
     refresh();
   }
 
@@ -665,6 +767,11 @@ void I_Bnnn(int instr) {
   // PC = V0 + nnn
   int nnn = instr & 0x0FFF;
   PC = V[0] + nnn;
+
+  if (testing) {
+    mvprintw(35,0, "I_Bnnn: PC = V0 + %X", nnn);
+    refresh();
+  }
 }
 
 void I_Cxkk(int instr) {
@@ -674,7 +781,7 @@ void I_Cxkk(int instr) {
   int kk = instr & 0x00FF;
 
   if (testing) {
-    mvprintw(35,0, "V%x = %X & %X (%X)", x, random, kk, random & kk);
+    mvprintw(35,0, "I_Cxkk: V%x = %X & %X (%X)", x, random, kk, random & kk);
     refresh();
   }
   V[x] = random & kk;
@@ -688,7 +795,7 @@ void I_Dxyn(int instr) {
   int n = (instr & 0x000F);
 
   if (testing == 1) {
-    mvprintw(35,0, "Display %X-byte sprite starting at (V%X, V%X)", n, x, y);
+    mvprintw(35,0, "I_Dxyn: display %X-byte sprite starting at (V%X, V%X)", n, x, y);
     refresh();
   }
   x = V[x];
@@ -726,7 +833,7 @@ void I_Ex9E(int instr) {
   // skip next instruction if key == Vx
   int x = (instr & 0x0F00) >> 8;
   if (testing) {
-    mvprintw(35,0, "Skip next instruction if key %X is being pressed", x);
+    mvprintw(35,0, "I_Ex9E: skip next instruction if key %X is being pressed", x);
     refresh();
   }
   int temp = 1;
@@ -741,7 +848,7 @@ void I_ExA1(int instr) {
   // skip next instruction if key != Vx
   int x = (instr & 0x0F00) >> 8;
   if (testing) {
-    mvprintw(35,0, "Skip next instruction if key %X isn't being pressed", x);
+    mvprintw(35,0, "I_ExA1: skip next instruction if key %X isn't being pressed", x);
     refresh();
   }
   int temp = 1;
@@ -756,7 +863,7 @@ void I_Fx07(int instr) {
   // set Vx = delay timer value
   int x = (instr & 0x0F00) >> 8;
   if (testing) {
-    mvprintw(35,0, "V%x = DT(%X)", x, DT);
+    mvprintw(35,0, "I_Fx07: V%x = DT(%X)", x, DT);
     refresh();
   }
   V[x] = DT;
@@ -767,7 +874,7 @@ void I_Fx0A(int instr) {
   int x = (instr & 0x0F00) >> 8;
 
   if (testing) {
-    mvprintw(35,0, "Wait for a key press and store it in V[%x]", x);
+    mvprintw(35,0, "I_Fx0A: Wait for a key press and store it in V[%x]", x);
     refresh();
   }
 
@@ -780,7 +887,7 @@ void I_Fx0A(int instr) {
       mvprintw(39+i,0, "V%X %X", i, V[i]);
     }
 
-    mvprintw(35,0, "Storing %X in V[%x], V[%x]=%X                 ", num, x, x, V[x]);
+    mvprintw(35,0, "I_Fx0A: Storing %X in V[%x], V[%x]=%X                 ", num, x, x, V[x]);
     refresh();
   }
 }
@@ -791,7 +898,7 @@ void I_Fx15(int instr) {
   DT = V[x];
 
   if (testing) {
-    mvprintw(35,0, "DT = V%x (%X)", x, V[x]);
+    mvprintw(35,0, "I_Fx15: DT = V%x (%X)", x, V[x]);
     refresh();
   }
   getch();
@@ -803,7 +910,7 @@ void I_Fx18(int instr) {
   ST = V[x];
 
   if (testing) {
-    mvprintw(35,0, "ST = V%x (%X)", x, V[x]);
+    mvprintw(35,0, "I_Fx18: ST = V%x (%X)", x, V[x]);
     refresh();
   }
   getch();
@@ -814,7 +921,7 @@ void I_Fx1E(int instr) {
   int x = (instr & 0x0F00) >> 8;
 
   if (testing) {
-    mvprintw(35,0, "I = I + V%x: %X = %X + %X", x, I+x, I, x);
+    mvprintw(35,0, "I_Fx1E: I = I + V%x: %X = %X + %X", x, I+x, I, x);
     refresh();
   }
 
@@ -829,7 +936,7 @@ void I_Fx29(int instr) {
   // TODO
   if (testing) {
     // mvprintw(35,0, "I_Fx29 Unfinished Instruction");
-    mvprintw(35,0, "I_Fx29 I = V[%x]=%X, %X*5 = %X", x, V[x], V[x], V[x]*5);
+    mvprintw(35,0, "I_Fx29: I = V[%x]=%X, %X*5 = %X", x, V[x], V[x], V[x]*5);
     refresh();
   }
   // getch();
@@ -848,7 +955,7 @@ void I_Fx33(int instr) {
   memory[I + 2] = V[x] % 1000 - memory[I] - memory[I + 1];
 
   if (testing) {
-    mvprintw(35,0, "I = BCD of V%x(%X) BCD=%X%X%X", x, V[x], memory[I], memory[I+1], memory[I+2]);
+    mvprintw(35,0, "I_Fx33: I = BCD of V%x(%X) BCD=%X%X%X", x, V[x], memory[I], memory[I+1], memory[I+2]);
     refresh();
   }
 
@@ -863,7 +970,7 @@ void I_Fx55(int instr) {
     memory[I + i] = V[i];
   }
   if (testing) {
-    mvprintw(35,0, "store registers V0-V%x in memory, starting at %X", x, I);
+    mvprintw(35,0, "I_Fx55: store registers V0-V%x in memory, starting at %X", x, I);
     refresh();
   }
   // getch();
@@ -878,7 +985,7 @@ void I_Fx65(int instr) {
     V[i] = memory[I + i];
   }
   if (testing) {
-    mvprintw(35,0, "read registers V0-V%x in memory, starting at %X", x, I);
+    mvprintw(35,0, "I_Fx65: read registers V0-V%x in memory, starting at %X", x, I);
     refresh();
   }
   // getch();
