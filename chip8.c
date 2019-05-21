@@ -901,7 +901,7 @@ void I_Fx15(int instr) {
     mvprintw(35,0, "I_Fx15: DT = V%x (%X)", x, V[x]);
     refresh();
   }
-  getch();
+  // getch();
 }
 
 void I_Fx18(int instr) {
@@ -934,7 +934,7 @@ void I_Fx29(int instr) {
   int x = (instr & 0x0F00) >> 8;
   x = V[x];
   I = x*5;
-  
+
   // TODO
   if (testing) {
     // mvprintw(35,0, "I_Fx29 Unfinished Instruction");
@@ -970,8 +970,14 @@ void I_Fx55(int instr) {
   // starting at memory[I]
   int x = (instr & 0x0F00) >> 8;
   int i = 0;
-  for (i = 0; i < x; i++) {
+  // for (i = 0; i < x; i++) {
+  for (i = 0; i <= x; i++) {
     memory[I + i] = V[i];
+
+    // if (testing) {
+    //   mvprintw(20+i,0, "memory[%X] = V%X(%X)", (I+i), i, V[i]);
+    //   refresh();
+    // }
   }
   if (testing) {
     mvprintw(35,0, "I_Fx55: store registers V0-V%x in memory, starting at %X", x, I);
@@ -985,7 +991,7 @@ void I_Fx65(int instr) {
   // starting from location memory[I]
   int x = (instr & 0x0F00) >> 8;
   int i = 0;
-  for (i = 0; i < x; i++) {
+  for (i = 0; i <= x; i++) {
     V[i] = memory[I + i];
   }
   if (testing) {
