@@ -51,6 +51,8 @@ void* timer_thread() {
 
 int processInstr(int instr) {
   // convert the instruction
+
+
   int nnn = 0;
   int n = 0;
   int kk = 0;
@@ -61,15 +63,26 @@ int processInstr(int instr) {
   int temp2 = fourth & 0x0004;    // TODO remove
   int threeFour = instr & 0x00FF;
   // mvprintw(2,0, "%X", first);
+  // if (testing) {
+  //   mvprintw(32,0, "               ");
+  //   mvprintw(32,0, "Instr=%X", instr);
+  //
+  //   mvprintw(29,0, "               ");
+  //   mvprintw(30,0, "               ");
+  //   mvprintw(31,0, "               ");
+  //   mvprintw(29,0, "first=%X", first);
+  //   mvprintw(30,0, "fourth=%X", fourth);
+  //   mvprintw(31,0, "threeFour=%X", threeFour);
+  //   refresh();
+  // }
   switch (first) {
     case 0:
-      if (instr & 0x00E0 == 0x00E0) {
-        // CLS
+      if (threeFour == 0x00E0) {
         I_00E0(instr);
-      } else if (instr & 0x00EE == 0x00EE) {
-        // RET
+      } else if (threeFour == 0x00EE) {
         I_00EE(instr);
       }
+
       // TODO SYS addr
       break;
 
@@ -286,22 +299,6 @@ int main(int argc, char** argv) {
   initscr();								// initialize screen
   raw();										// raw mode
   curs_set(0);              // hide cursor
-  // SP = 0;
-  // mvprintw(36,10, "WHY DOESNT THIS APPEAR");
-  // mvprintw(37,10, "SP %c", stack_pointer);
-  // mvprintw(38,10, "SP %d", stack_pointer);
-  // mvprintw(39,10, "SP %x", stack_pointer);
-  // mvprintw(40,10, "SP %X", stack_pointer);
-  // refresh();
-  // getch();
-  // stack_pointer++;
-  // mvprintw(36,10, "WHY DOESNT THIS APPEAR");
-  // mvprintw(37,10, "SP %c", stack_pointer);
-  // mvprintw(38,10, "SP %d", stack_pointer);
-  // mvprintw(39,10, "SP %x", stack_pointer);
-  // mvprintw(40,10, "SP %X", stack_pointer);
-  // refresh();
-  // getch();
 
   // create a thread for reading keyboard input
   pthread_t kb_id;
@@ -316,64 +313,18 @@ int main(int argc, char** argv) {
   loadRom(fileName);
 
 
-  // printw("PC %X", PC);
-  // mvprintw(1,0, "%X", currentInstr);
-
-  // mvprintw(2,0, "%X", memory[PC]);
-  // mvprintw(3,0, "currentInstr%X", memory[PC+1]);
-  // mvprintw(4,0, "%X", memory[PC+2]);
-  // refresh();
   int currentInstr;
-
 
   while (1) {
 
-
-    if (testing == 1) {
-      mvprintw(35,0, "                                                       ");
-    }
-    // get current instruction
-    // currentInstr = readInstr();
-    mvprintw(20,0, "                              ");
-    mvprintw(21,0, "                              ");
-    mvprintw(20,0, "memory[PC]=   %X      %d", memory[PC]&0x00FF,memory[PC]&0x00FF);
-    mvprintw(21,0, "memory[PC+1]= %X      %d", memory[PC+1]&0x00FF,memory[PC+1]&0x00FF);
-
-    mvprintw(22,0, "                       ");
-    mvprintw(23,0, "                       ");
-    mvprintw(24,0, "                       ");
-    mvprintw(25,0, "                       ");
-
-    int temp = memory[PC];
-    mvprintw(22,0, "temp=%d", temp);
-    temp = temp << 8;
-    currentInstr = temp;
-    mvprintw(23,0, "currentInstr=%d", currentInstr);
-    refresh();
-
-
-    temp = memory[PC+1];
-    mvprintw(24,0, "temp=%d", temp);
-    currentInstr = currentInstr | temp;
-    mvprintw(25,0, "currentInstr=%d", currentInstr);
-    int temp3 = currentInstr;
-
-    // // currentInstr = (memory[PC] & 0x00FF) << 8;
-    // currentInstr = (memory[PC] & 0x00FF) * 256;
-    // mvprintw(22,0, "rot=%X", currentInstr);
-    // mvprintw(23,0, "rot=%d", currentInstr);
-    // currentInstr = currentInstr | memory[PC+1];
-
-    // int temp = memory[PC];
-
-    // mvprintw(24,0, "temp=%d", temp);
-    // mvprintw(25,0, "temp=%d", temp<<8);
-
-    refresh();
+    // get next instruction and increment PC
+    currentInstr = (memory[PC] << 8) | memory[PC+1];
     PC += 2;
 
 
     if (testing == 1) {
+      mvprintw(30,0, "                  ");
+      mvprintw(31,0, "                  ");
       mvprintw(30,0, "Instr=%d", currentInstr);
       mvprintw(31,0, "Instr=%X", currentInstr);
       refresh();
@@ -382,6 +333,12 @@ int main(int argc, char** argv) {
 
     // show register information
     if (testing == 1) {
+      mvprintw(35,0, "                                                         ");
+      mvprintw(36,0, "                                                         ");
+      mvprintw(37,0, "                                                         ");
+      mvprintw(38,0, "                                                         ");
+      mvprintw(39,0, "                                                         ");
+
       mvprintw(36,0, "Instr=%X", currentInstr);
       if (step_mode) {
         mvprintw(36,16, "step mode on ");
@@ -389,8 +346,8 @@ int main(int argc, char** argv) {
         mvprintw(36,16, "step mode off");
       }
 
+
       mvprintw(37,0, "PC %X", PC);
-      mvprintw(37,10, "                       ");
       mvprintw(37,10, "SP %X", stack_pointer);
       mvprintw(38,0, "I %X", I);
       mvprintw(38,10, "     ");
@@ -400,6 +357,7 @@ int main(int argc, char** argv) {
       int col = 39;
       int i = 0;
       for (i = 0; i < 16; i++) {
+        mvprintw(39+i,0, "            ");
         mvprintw(39+i,0, "V%X %X", i, V[i]);
       }
       refresh();
@@ -411,44 +369,6 @@ int main(int argc, char** argv) {
       getch();
     }
   }
-  // mvaddch(0, 0, ' ' | A_REVERSE); // OR of space and reverse
-  // mvaddch(0, 63, ' ' | A_REVERSE);
-  // mvaddch(31, 0, ' ' | A_REVERSE);
-  // mvaddch(31, 63, ' ' | A_REVERSE);
-
-  // I_00E0(3);
-
-  /*
-  V[1] = 0;
-  V[2] = 0;
-  I_Dxyn(0xD125);
-  */
-  // int i = 0;
-  // int spaceX = 5;
-  // int spaceY = 7;
-  // V[1] = 0;
-  // V[2] = 0;
-  // for (i = 0; i < 0x10; i++) {
-  //   I_Dxyn(0xD125);
-  //   V[1] += spaceX;
-  //   if (V[1] > 63) {
-  //     V[1] = 0;
-  //     V[2] += spaceY;
-  //   }
-  //   I += 5;
-  // }
-  //
-
-
-
-
-  // dumpInstr(fileName);
-  // exit(0);
-  // loadRom(fileName);
-  // int currentInstr;
-  // currentInstr = readInstr();
-  // //printf("%X\n", currentInstr);
-  // lookupInstr(currentInstr);
 
   endwin();									// close window
 
@@ -492,11 +412,11 @@ void I_0nnn(int instr) {
 
 void I_00E0(int instr) {
   // clear display
+  clear();
   if (testing) {
-    mvprintw(35,0, "clear display");
+    mvprintw(35,0, "I_00E0: clear display");
     refresh();
   }
-  clear();
 }
 
 void I_00EE(int instr) {
@@ -592,7 +512,7 @@ void I_6xkk(int instr) {
   int kk = instr & 0x00FF;
 
   if (testing) {
-    mvprintw(35,0, "Instruction 6xkk: set V%X from %X to %X\n", x, V[x], kk);
+    mvprintw(35,0, "I_6xkk: set V%X from %X to %X\n", x, V[x], kk);
     refresh();
   }
   V[x] = kk;
@@ -629,7 +549,7 @@ void I_8xy2(int instr) {
   V[x] = V[x] & V[y];
 
   if (testing) {
-    mvprintw(35,0, "V%x = V%x & V%x", x, x, y);
+    mvprintw(35,0, "I_8xy2: V%x = V%x & V%x", x, x, y);
     refresh();
   }
 }
@@ -648,7 +568,7 @@ void I_8xy4(int instr) {
   int y = (instr & 0x00F0) >> 4;
   int sum = V[x] + V[y];
   if (testing) {
-    mvprintw(35,0, "add %X to %X, if %X is greater than 255 set Vf to 1", x, y, sum);
+    mvprintw(35,0, "I_8xy4: add %X to %X, if %X is greater than 255 set Vf to 1", x, y, sum);
     refresh();
   }
   V[x] = sum;
