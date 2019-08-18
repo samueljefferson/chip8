@@ -16,6 +16,11 @@
 // sudo ./chip8 Breakout.ch8
 
 int testing = 1;
+int step_mode = 0;
+int instr_count = 0;
+// file pointer for log file
+FILE *fp;
+
 
 unsigned char memory[4096];    // 4096 bytes of memory
 unsigned char V[16];           // 16 8 bit registers
@@ -29,7 +34,7 @@ int DT = 0;                    // delay timer
 int ST = 0;                    // sound timer
 
 int keyboard = 0;              // contains flags for all keys from 0-F
-int step_mode = 0;
+
 int stop = 0;
 //char key =
 
@@ -202,25 +207,45 @@ void *kb_input(void *ptr) {
   // setup keyboard stuff
   int kb_convert[256];  // array used to convert ev.code into correct values
   memset(kb_convert, -1, 256);
-  kb_convert[2] = 2;
-  kb_convert[3] = 4;
-  kb_convert[4] = 8;
-  kb_convert[5] = 4096;
+  // kb_convert[2] = 2;
+  // kb_convert[3] = 4;
+  // kb_convert[4] = 8;
+  // kb_convert[5] = 4096;
+  //
+  // kb_convert[16] = 16;
+  // kb_convert[17] = 32;
+  // kb_convert[18] = 64;
+  // kb_convert[19] = 8192;
+  //
+  // kb_convert[30] = 128;
+  // kb_convert[31] = 256;
+  // kb_convert[32] = 512;
+  // kb_convert[33] = 16384;
+  //
+  // kb_convert[44] = 1024;
+  // kb_convert[45] = 1;
+  // kb_convert[46] = 2048;
+  // kb_convert[47] = 32768;
 
-  kb_convert[16] = 16;
-  kb_convert[17] = 32;
-  kb_convert[18] = 64;
-  kb_convert[19] = 8192;
+  kb_convert[2] = 0x0002;     // 1
+  kb_convert[3] = 0x0004;     // 2
+  kb_convert[4] = 0x0008;     // 3
+  kb_convert[5] = 0x1000;     // D
 
-  kb_convert[30] = 128;
-  kb_convert[31] = 256;
-  kb_convert[32] = 512;
-  kb_convert[33] = 16384;
+  kb_convert[16] = 0x0010;    // 4
+  kb_convert[17] = 0x0020;    // 5
+  kb_convert[18] = 0x0040;    // 6
+  kb_convert[19] = 0x2000;    // D
 
-  kb_convert[44] = 1024;
-  kb_convert[45] = 1;
-  kb_convert[46] = 2048;
-  kb_convert[47] = 32768;
+  kb_convert[30] = 0x0080;    // 7
+  kb_convert[31] = 0x0100;    // 8
+  kb_convert[32] = 0x0200;    // 9
+  kb_convert[33] = 0x4000;    // A
+
+  kb_convert[44] = 0x0400;    // B
+  kb_convert[45] = 0x0001;    // 0
+  kb_convert[46] = 0x0800;    // C
+  kb_convert[47] = 0x8000;    // F
 
   char *dev = "/dev/input/by-path/platform-i8042-serio-0-event-kbd";
   struct input_event ev;
@@ -235,6 +260,7 @@ void *kb_input(void *ptr) {
 
     if (ev.type == EV_KEY && ev.value >= 0 && ev.value <= 2) {
       if ((int)ev.code == 1) {
+        echo();                   // turn echo back on
         endwin();									// close window
         exit(0);
       }
@@ -251,6 +277,9 @@ void *kb_input(void *ptr) {
           }
         }
         temp = kb_convert[(int)ev.code];
+        // TODO remove
+        // mvprintw(51,20, "            ", temp);
+        // mvprintw(51,20, "pressed=%X", temp);
         if (temp != -1) {
           keyboard = keyboard | temp;
         }
@@ -333,6 +362,11 @@ int drawScreen(int keyboard, int y, int x)
 }
 
 int main(int argc, char** argv) {
+  // // create log file
+  // FILE *fp;
+  fp = fopen("log.txt", "w");
+  fprintf(fp, "start of log file\n");
+
   // printf("SP = %d\n", SP);
   // init();
   memset(memory, 0, 4096);
@@ -359,6 +393,7 @@ int main(int argc, char** argv) {
   // setup ncurses
   initscr();								// initialize screen
   raw();										// raw mode
+  noecho();                 // key presses aren't put on screen
   curs_set(0);              // hide cursor
 
   // create a thread for reading keyboard input
@@ -366,8 +401,8 @@ int main(int argc, char** argv) {
   pthread_create(&kb_id, NULL, kb_input, NULL);
 
   // create a thread for timers
-  // pthread_t timer_id;
-  // pthread_create(&timer_id, NULL, timer_thread, NULL);
+  pthread_t timer_id;
+  pthread_create(&timer_id, NULL, timer_thread, NULL);
 
   // load the rom
   endwin();
@@ -375,12 +410,13 @@ int main(int argc, char** argv) {
 
 
   int currentInstr;
+  // int instr_count = 0;
 
   while (1) {
 
     // get next instruction and increment PC
     currentInstr = (memory[PC] << 8) | memory[PC+1];
-    PC += 2;
+    // PC += 2;
 
 
     // if (testing == 1) {
@@ -394,11 +430,11 @@ int main(int argc, char** argv) {
 
     // show register information
     if (testing == 1) {
-      mvprintw(35,0, "                                                         ");
+      mvprintw(35,0, "                                                                           ");
       mvprintw(36,0, "                                                         ");
-      mvprintw(37,0, "                                                         ");
-      mvprintw(38,0, "                                                         ");
-      mvprintw(39,0, "                                                         ");
+      mvprintw(37,0, "                              ");
+      mvprintw(38,0, "                              ");
+      mvprintw(39,0, "                              ");
 
       mvprintw(36,0, "Instr=%X", currentInstr);
       if (step_mode) {
@@ -406,6 +442,7 @@ int main(int argc, char** argv) {
       } else {
         mvprintw(36,16, "step mode off");
       }
+      mvprintw(36,32, "instr:%d", instr_count);
       // // keyboard
       // mvprintw(38,20, "123C");
       // mvprintw(39,20, "456D");
@@ -434,6 +471,38 @@ int main(int argc, char** argv) {
 
     }
     processInstr(currentInstr);
+
+    // output screen info to log here
+    char displayedChar;
+    // TODO don't hardcode string size, set it to width of screen
+    char string[64] = "";
+    int i;
+    for (i = 0; i < 64; i++) {
+      string[i] = ' ';
+    }
+    string[63] = '\0';
+
+    for (i = 0; i < 64; i++) {
+      displayedChar = mvinch(35, i);
+      if (displayedChar > 31 && displayedChar <126) {
+        string[i] = displayedChar;
+      } else {
+        string[i] = ' ';
+      }
+    }
+    fprintf(fp, "%s\n" ,string);
+    instr_count++;
+
+
+    // TODO remove
+    // display keyboard
+    mvprintw(50,20, "keyboard=%04X", keyboard);
+    // TODO check to see how long instructions are supposed to last
+    // sleep a little after the instruction is finished
+    int instr_time = 800;
+    long instr_delay = 1000000000 / instr_time;
+    struct timespec ts = {0, instr_delay};
+    nanosleep(&ts, NULL);   // sleep for 1/60 of a second
 
     if (step_mode) {
       getch();
@@ -479,19 +548,24 @@ void lookupInstr(int instr) {
 void I_0nnn(int instr) {
   // TODO
   if (testing) {
-    mvprintw(35,0, "I_0nnn: not implemented yet");
+    mvprintw(35,0, "ICDP1802_0nnn: not implemented yet");
     refresh();
   }
+  if (step_mode) {
+    getch();
+  }
+  PC += 2;
 }
 
 void I_00E0(int instr) {
   // clear display 64x32
-  // clear();
+  clear();
 
   if (testing) {
     mvprintw(35,0, "I_00E0: clear display");
     refresh();
   }
+  PC += 2;
 }
 
 void I_00EE(int instr) {
@@ -501,8 +575,12 @@ void I_00EE(int instr) {
     mvprintw(35,0, "I_00EE: RET, set PC to %X and decrement SP", stack[SP]);
     refresh();
   }
+
   PC = stack[stack_pointer];
   stack_pointer--;
+
+  // TODO CHECK
+  PC += 2;
 }
 
 void I_1nnn(int instr) {
@@ -516,19 +594,18 @@ void I_1nnn(int instr) {
 }
 
 void I_2nnn(int instr) {
-
+  // call subroutine at nnn
   int nnn = instr & 0x0FFF;
 
-  // call subroutine at nnn
   // increment stack_pointer
   stack_pointer++;
-
   // put PC on top of stack
   stack[stack_pointer] = PC;
   // set PC to nnn
   PC = nnn;
+
   if (testing) {
-    mvprintw(35,0, "I_2nnn: call subroutine at %X, SP++, stack[%X] = PC(%X)", nnn, stack_pointer, PC);
+    mvprintw(35,0, "I_2nnn: call subroutine at %X, SP++, stack[%X] = PC(%X)", nnn, stack_pointer, stack[stack_pointer-1]);
     refresh();
   }
 }
@@ -541,30 +618,35 @@ void I_3xkk(int instr) {
   // get kk
   int kk = (instr & 0x00FF);
   // skip next instruction if Vx = kk
+  if (V[x] == kk) {
+    PC += 4;
+  } else {
+    PC += 2;
+  }
+
   if (testing) {
     mvprintw(35,0, "I_3xkk: skip next instruction if V[%X](%X) = %X", x, V[x], kk);
     refresh();
-  }
-  if (V[x] == kk) {
-    PC += 2;
   }
 }
 
 void I_4xkk(int instr) {
   // skip next instruction if Vx != kk
+
   // get x
   int x = (instr & 0x0F00) >> 8;
   // get kk
   int kk = (instr & 0x00FF);
+  // skip next instruction if Vx != kk
+  if (V[x] != kk) {
+    PC += 4;
+  } else {
+    PC += 2;
+  }
 
   if (testing) {
     mvprintw(35,0, "I_4xkk: skip next instruction if V%X(%X) != %X", x, V[x], kk);
     refresh();
-  }
-
-  // skip next instruction if Vx != kk
-  if (V[x] != kk) {
-    PC += 2;
   }
 }
 
@@ -573,6 +655,8 @@ void I_5xy0(int instr) {
   int x = (instr & 0x0F00) >> 8;
   int y = (instr & 0x00F0) >> 4;
   if (V[x] == V[y]) {
+    PC += 4;
+  } else {
     PC += 2;
   }
   if (testing) {
@@ -587,10 +671,12 @@ void I_6xkk(int instr) {
   int kk = instr & 0x00FF;
 
   if (testing) {
-    mvprintw(35,0, "I_6xkk: set V%X from %X to %X\n", x, V[x], kk);
+    mvprintw(35,0, "I_6xkk: set V[%X] from %X to %X\n", x, V[x], kk);
     refresh();
   }
+
   V[x] = kk;
+  PC += 2;
 }
 
 void I_7xkk(int instr) {
@@ -598,10 +684,15 @@ void I_7xkk(int instr) {
   int x = (instr & 0x0F00) >> 8;
   int kk = instr & 0x00FF;
   if (testing) {
-    mvprintw(35,0, "I_7xkk: set V%X = %X + %X", x, V[x], kk);
+    mvprintw(35,0, "I_7xkk: set V[%X] = %X + %X = %X", x, V[x], kk, (V[x]+kk)%255);
     refresh();
   }
   V[x] += kk;
+
+  // TODO mattmik, if V[x] > 255 then mod it with 255
+  // V[x] = V[x] & 0x00FF;
+  V[x] = V[x] % 0x00FF;
+  PC += 2;
 }
 
 void I_8xy0(int instr) {
@@ -609,7 +700,9 @@ void I_8xy0(int instr) {
   int x = (instr & 0x0F00) >> 8;
   int y = (instr & 0x00F0) >> 4;
   V[x] = V[y];
+  PC += 2;
 }
+
 void I_8xy1(int instr) {
   // Vx = Vx | Vy
   int x = (instr & 0x0F00) >> 8;
@@ -620,6 +713,7 @@ void I_8xy1(int instr) {
     mvprintw(35,0, "I_8xy1: set V%X = V%X | V%X", x, x, y);
     refresh();
   }
+  PC += 2;
 }
 
 void I_8xy2(int instr) {
@@ -632,6 +726,7 @@ void I_8xy2(int instr) {
     mvprintw(35,0, "I_8xy2: V%x = V%x & V%x", x, x, y);
     refresh();
   }
+  PC += 2;
 }
 
 void I_8xy3(int instr) {
@@ -643,6 +738,7 @@ void I_8xy3(int instr) {
     mvprintw(35,0, "I_8xy3: V%X = V%X ^ V%X", x, x, y);
     refresh();
   }
+  PC += 2;
 }
 
 void I_8xy4(int instr) {
@@ -655,12 +751,13 @@ void I_8xy4(int instr) {
     mvprintw(35,0, "I_8xy4: add %X to %X, if %X is greater than 255 set Vf to 1", x, y, sum);
     refresh();
   }
-  V[x] = sum;
+  V[x] = sum & 0x00FF;  // TODO CHECK
   if (sum > 0xFF) {
-    V[0xF] = 1;
+    V[15] = 1;
   } else {
-    V[0xF] = 0;
+    V[15] = 0;
   }
+  PC += 2;
 }
 
 void I_8xy5(int instr) {
@@ -669,35 +766,40 @@ void I_8xy5(int instr) {
   int x = (instr & 0x0F00) >> 8;
   int y = (instr & 0x00F0) >> 4;
   if (V[x] > V[y]) {
-    V[0xF] = 1;
+    V[15] = 1;
   } else {
-    V[0xF] = 0;
+    V[15] = 0;
   }
   V[x] -= V[y];
+  V[x] = V[x] & 0x00FF;   // TODO CHECK
 
   if (testing) {
     mvprintw(35,0, "I_8xy5: V%X -= V%X, if V%x > V%X then VF=0", x, y, x, y);
     refresh();
   }
+  PC += 2;
 }
 
 void I_8xy6(int instr) {
   // shift right
   // if the smallest bit in Vx is 1 then VF = 1
-  // otherwise VF = 2
+  // otherwise VF = 0
   // then shift Vx 1 right
   int x = (instr & 0x0F00) >> 8;
   int bit = V[x] & 0x01;
   if (bit) {
-    V[0xf] = 1;
+    V[15] = 1;
   } else {
-    V[0xf] = 0;
+    V[15] = 0;
   }
   V[x] = V[x] >> 1;
+  V[x] = V[x] & 0x00FF;   // TODO CHECK
+
   if (testing) {
     mvprintw(35,0, "I_8xy6: V%X >> 1, if first digit is 1 set VF=1 else VF=0", x);
     refresh();
   }
+  PC += 2;
 }
 
 void I_8xy7(int instr) {
@@ -706,15 +808,18 @@ void I_8xy7(int instr) {
   int x = (instr & 0x0F00) >> 8;
   int y = (instr & 0x00F0) >> 4;
   if (V[y] > V[x]) {
-    V[0xF] = 1;
+    V[15] = 1;
   } else {
-    V[0xF] = 0;
+    V[15] = 0;
   }
   V[x] = V[y] - V[x];
+  V[x] = V[x] & 0x00FF;   // TODO CHECK
+
   if (testing) {
     mvprintw(35,0, "I_8xy7: V%X = V%X - V%X, if V%X>V%X then VF=1, else VF=0", x, y, x, y, x);
     refresh();
   }
+  PC += 2;
 }
 
 void I_8xyE(int instr) {
@@ -723,16 +828,18 @@ void I_8xyE(int instr) {
   int x = (instr & 0x0F00) >> 8;
   int bit = V[x] & 0x80;
   if (bit) {
-    V[0xf] = 1;
+    V[15] = 1;
   } else {
-    V[0xf] = 0;
+    V[15] = 0;
   }
   V[x] = V[x] << 1;
+  V[x] = V[x] & 0x00FF;   // TODO CHECK
 
   if (testing) {
     mvprintw(35,0, "I_8xyE: V%X << 1, if left most bit is 1 then VF = 1, else VF = 0 ", x);
     refresh();
   }
+  PC += 2;
 }
 
 void I_9xy0(int instr) {
@@ -746,6 +853,8 @@ void I_9xy0(int instr) {
   }
 
   if (V[x] != V[y]) {
+    PC += 4;
+  } else {
     PC += 2;
   }
 }
@@ -761,6 +870,7 @@ void I_Annn(int instr) {
   }
 
   I = nnn;
+  PC += 2;
 }
 
 void I_Bnnn(int instr) {
@@ -785,6 +895,7 @@ void I_Cxkk(int instr) {
     refresh();
   }
   V[x] = random & kk;
+  PC += 2;
 }
 
 void I_Dxyn(int instr) {
@@ -801,6 +912,7 @@ void I_Dxyn(int instr) {
   x = V[x];
   y = V[y];
 
+
   // each sprite is 8 wide and up to 15 long
   // mvaddch(0, 63, ' ' | A_REVERSE);
 
@@ -808,25 +920,74 @@ void I_Dxyn(int instr) {
   int j = 0;
   int byte = 0;
   int bit = 0;
-  // display each column
+  char displayedChar = ' ';
+  int displayedBit = 0;    // is the pixel currently being displayed?
+
+  // set VF to 0
+  V[15] = 0;
+  // display each row
+  if (testing == 1) {
+    mvprintw(38,30, "byte");
+    for (i = 0; i < 8; i++) {
+      mvprintw(39+i,40, "                          ");
+    }
+    refresh();
+  }
   for (i = 0; i < n; i++) {
-    // display each row
     byte = memory[I + i];
+    if (testing == 1) {
+      // display the byte
+      mvprintw(39+i,30, "             ");
+      mvprintw(39+i,30, "%.4x", byte);
+    }
+    // display each column
+
     for (j = 0; j < 8; j++) {
-      // get current value of bit
-      bit = byte & 0x80;
-      if (bit) {
-        // display bit
-        mvaddch((y + i), (x + j), ' ' | A_REVERSE);
+
+      // find out if the pixel currently has anything displayed
+      // y,x
+      int row = y+i;
+      int col = x+j;
+
+      // TODO should this be use the &
+      // displayedChar = mvinch(row, col) & A_CHARTEXT;
+      displayedChar = mvinch(row, col);
+      if (displayedChar == ' ') {
+        displayedBit = 0;
       } else {
-        // display nothing
-        mvaddch((y + i), (x + j), ' ');
+        displayedBit = 1;
       }
 
+      // mask for correct bit of j
+      // take 1 and rotate it 7-j bits left to get the mask
+      // so for j=0 do 1<<7=8 so you have a mask for the first bit
+      // then and it with the byte
+      // then rotate this 7-j bits right
+      // for first bit (if its 1) 0x80>>7=1
+      bit = ((0x01 << (7-j)) & byte) >> (7-j);
 
-      byte = byte << 1;
+      // XOR bit with displayedBit
+      bit = bit ^ displayedBit;
+
+      if (bit) {
+        // display bit
+        // mvaddch(row, col, ' ' | A_REVERSE);
+        mvaddch(row, col, '#');
+      } else {
+        // if bit was displayed before and is being erased set VF to 1
+        if (displayedBit == 1) {
+          V[15] = 1;
+        }
+        // display nothing
+        mvaddch(row, col, ' ');
+      }
+      refresh();
+      if (step_mode) {
+        getch();
+      }
     }
   }
+  PC += 2;
 }
 
 void I_Ex9E(int instr) {
@@ -840,6 +1001,8 @@ void I_Ex9E(int instr) {
   temp = temp << x;
   int temp_keyboard = keyboard;
   if (temp_keyboard & temp == temp) {
+    PC += 4;
+  } else {
     PC += 2;
   }
 }
@@ -847,16 +1010,29 @@ void I_Ex9E(int instr) {
 void I_ExA1(int instr) {
   // skip next instruction if key != Vx
   int x = (instr & 0x0F00) >> 8;
+  int key = V[x];
+  // TODO check
   if (testing) {
-    mvprintw(35,0, "I_ExA1: skip next instruction if key %X isn't being pressed", x);
+    mvprintw(35,0, "I_ExA1: skip next instruction if key %X isn't being pressed", key);
     refresh();
   }
-  int temp = 1;
-  temp = temp << x;
-  int temp_keyboard = keyboard;
-  if (temp_keyboard & temp != temp) {
+  int temp = 0x01;
+  temp = temp << key;
+  mvprintw(43,20, "check%X", key);
+  // int temp_keyboard = keyboard;
+  // if (temp_keyboard & temp != temp) {
+  //   PC += 4;
+  // } else {
+  //   PC += 2;
+  // }
+  mvprintw(43,20, "           ");
+  if (keyboard & temp != 0) {
+    PC += 4;
+    mvprintw(43,20, "not pressed");
+  } else {
     PC += 2;
   }
+  mvprintw(42,20, "k%X", key);
 }
 
 void I_Fx07(int instr) {
@@ -867,6 +1043,7 @@ void I_Fx07(int instr) {
     refresh();
   }
   V[x] = DT;
+  PC += 2;
 }
 
 void I_Fx0A(int instr) {
@@ -890,6 +1067,7 @@ void I_Fx0A(int instr) {
     mvprintw(35,0, "I_Fx0A: Storing %X in V[%x], V[%x]=%X                 ", num, x, x, V[x]);
     refresh();
   }
+  PC += 2;
 }
 
 void I_Fx15(int instr) {
@@ -902,6 +1080,7 @@ void I_Fx15(int instr) {
     refresh();
   }
   // getch();
+  PC += 2;
 }
 
 void I_Fx18(int instr) {
@@ -913,7 +1092,11 @@ void I_Fx18(int instr) {
     mvprintw(35,0, "I_Fx18: ST = V%x (%X)", x, V[x]);
     refresh();
   }
-  getch();
+  if (step_mode) {
+    getch();
+  }
+
+  PC += 2;
 }
 
 void I_Fx1E(int instr) {
@@ -921,16 +1104,29 @@ void I_Fx1E(int instr) {
   int x = (instr & 0x0F00) >> 8;
 
   if (testing) {
-    mvprintw(35,0, "I_Fx1E: I = I + V%x: %X = %X + %X", x, I+x, I, x);
+    // mvprintw(35,0, "I_Fx1E: I = I + V%x: %X = %X + %X", x, I+x, I, x);
+    // mvprintw(35,0, "I_Fx1E: I = I + V%x: %X = %X + %X", x, I+x, I, V[x]);
+    mvprintw(35,0, "I_Fx1E: I = I + V[%x] is %X = %X + %X", x, I+V[x], I, V[x]);
     refresh();
   }
 
-  I += x;
+  I += V[x];
+
+  // TODO check if this is correct
+  // set VF=1 if I > 0x0FFF
+  // if (I > 0x0FFF) {
+  //   V[15] = 1;
+  // } else {
+  //   V[15] = 0;
+  // }
+
+  PC += 2;
 
 }
 
 void I_Fx29(int instr) {
-  // set I = location of sprit for digit Vx
+  // set I = location of sprite for digit Vx
+  // aka where sprites for 0-F are in memory
   int x = (instr & 0x0F00) >> 8;
   x = V[x];
   I = x*5;
@@ -944,6 +1140,7 @@ void I_Fx29(int instr) {
     refresh();
   }
   // getch();
+  PC += 2;
 
 }
 
@@ -966,6 +1163,7 @@ void I_Fx33(int instr) {
     mvprintw(35,0, "I_Fx33: I = BCD of V%x(%X) BCD=%X,%X,%X", x, V[x], memory[I], memory[I+1], memory[I+2]);
     refresh();
   }
+  PC += 2;
 
 }
 
@@ -978,31 +1176,39 @@ void I_Fx55(int instr) {
   for (i = 0; i <= x; i++) {
     memory[I + i] = V[i];
 
-    // if (testing) {
-    //   mvprintw(20+i,0, "memory[%X] = V%X(%X)", (I+i), i, V[i]);
-    //   refresh();
-    // }
   }
+
+  // TODO mattmik
+  I = I + x + 1;
+
   if (testing) {
     mvprintw(35,0, "I_Fx55: store registers V0-V%x in memory, starting at %X", x, I);
     refresh();
   }
   // getch();
+  PC += 2;
 }
 
 void I_Fx65(int instr) {
-  // reads registers V0 to Vx in memory
+  // fills registers V0 to Vx from memory
   // starting from location memory[I]
+
   int x = (instr & 0x0F00) >> 8;
   int i = 0;
   for (i = 0; i <= x; i++) {
     V[i] = memory[I + i];
   }
+  int old_I = I;
+  // TODO mattmik
+  I = I + x + 1;
+
   if (testing) {
-    mvprintw(35,0, "I_Fx65: read registers V0-V%x in memory, starting at %X", x, I);
+    mvprintw(35,0, "I_Fx65: fill registers V0-V%x from memory, starting at %X", x, old_I);
     refresh();
   }
   // getch();
+
+  PC += 2;
 }
 
 int readInstr() {
