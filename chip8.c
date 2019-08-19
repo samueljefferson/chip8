@@ -15,12 +15,11 @@
 #define SPACE 57
 // sudo ./chip8 Breakout.ch8
 
-int testing = 1;
+int testing = 0;
 int step_mode = 0;
 int instr_count = 0;
 // file pointer for log file
 FILE *fp;
-
 
 unsigned char memory[4096];    // 4096 bytes of memory
 unsigned char V[16];           // 16 8 bit registers
@@ -34,9 +33,6 @@ int DT = 0;                    // delay timer
 int ST = 0;                    // sound timer
 
 int keyboard = 0;              // contains flags for all keys from 0-F
-
-int stop = 0;
-//char key =
 
 void* timer_thread() {
   // Decrement DT and ST 60 times a second if they don't equal 0
@@ -57,29 +53,14 @@ void* timer_thread() {
 int processInstr(int instr) {
   // convert the instruction
 
-
   int nnn = 0;
   int n = 0;
   int kk = 0;
 
-  // get first nibble of instruction
-  int first  = instr >> 12;
-  int fourth = instr & 0x000F;
-  int temp2 = fourth & 0x0004;    // TODO remove
-  int threeFour = instr & 0x00FF;
-  // mvprintw(2,0, "%X", first);
-  // if (testing) {
-  //   mvprintw(32,0, "               ");
-  //   mvprintw(32,0, "Instr=%X", instr);
-  //
-  //   mvprintw(29,0, "               ");
-  //   mvprintw(30,0, "               ");
-  //   mvprintw(31,0, "               ");
-  //   mvprintw(29,0, "first=%X", first);
-  //   mvprintw(30,0, "fourth=%X", fourth);
-  //   mvprintw(31,0, "threeFour=%X", threeFour);
-  //   refresh();
-  // }
+  int first  = instr >> 12;           // first nibble
+  int fourth = instr & 0x000F;        // second nibble
+  int threeFour = instr & 0x00FF;     // third and fourth nibble
+
   switch (first) {
     case 0:
       if (threeFour == 0x00E0) {
@@ -96,10 +77,6 @@ int processInstr(int instr) {
       break;
 
     case 2:
-      // TODO remove
-      // mvprintw(30,0, "HERE");
-      // refresh();
-      // getch();
       I_2nnn(instr);
       break;
 
@@ -124,7 +101,6 @@ int processInstr(int instr) {
       break;
 
     case 8:
-
       if (fourth == 0x0000) {
         I_8xy0(instr);
       } else if (fourth == 0x0001) {
@@ -202,30 +178,9 @@ int processInstr(int instr) {
 }
 
 void *kb_input(void *ptr) {
-  // printw("test\n");
-  // refresh();
   // setup keyboard stuff
   int kb_convert[256];  // array used to convert ev.code into correct values
   memset(kb_convert, -1, 256);
-  // kb_convert[2] = 2;
-  // kb_convert[3] = 4;
-  // kb_convert[4] = 8;
-  // kb_convert[5] = 4096;
-  //
-  // kb_convert[16] = 16;
-  // kb_convert[17] = 32;
-  // kb_convert[18] = 64;
-  // kb_convert[19] = 8192;
-  //
-  // kb_convert[30] = 128;
-  // kb_convert[31] = 256;
-  // kb_convert[32] = 512;
-  // kb_convert[33] = 16384;
-  //
-  // kb_convert[44] = 1024;
-  // kb_convert[45] = 1;
-  // kb_convert[46] = 2048;
-  // kb_convert[47] = 32768;
 
   kb_convert[2] = 0x0002;     // 1
   kb_convert[3] = 0x0004;     // 2
@@ -264,8 +219,7 @@ void *kb_input(void *ptr) {
         endwin();									// close window
         exit(0);
       }
-      // mvprintw(12,0, "        ");
-      // mvprintw(12,0, "%d", (int)ev.code);
+
       // // if a key is pressed
       if (ev.value == 1) {
         if (ev.code == ENTER) {
@@ -277,9 +231,6 @@ void *kb_input(void *ptr) {
           }
         }
         temp = kb_convert[(int)ev.code];
-        // TODO remove
-        // mvprintw(51,20, "            ", temp);
-        // mvprintw(51,20, "pressed=%X", temp);
         if (temp != -1) {
           keyboard = keyboard | temp;
         }
@@ -292,8 +243,6 @@ void *kb_input(void *ptr) {
           keyboard = keyboard & temp;
         }
       }
-      // mvprintw(1,0, "%d", keyboard);
-      // refresh();
     }
   }
 
@@ -362,33 +311,48 @@ int drawScreen(int keyboard, int y, int x)
 }
 
 int main(int argc, char** argv) {
-  // // create log file
-  // FILE *fp;
-  fp = fopen("log.txt", "w");
-  fprintf(fp, "start of log file\n");
 
-  // printf("SP = %d\n", SP);
-  // init();
+  // check for dev and step
+  if (argc >= 3) {
+    // if (argv[3] == 'dev' || argv[4] == 'dev') {
+    if (!strcmp(argv[2], "dev")) {
+      testing = 1;
+      printf("dev mode on\n");;
+    } else if (!strcmp(argv[2], "step")) {
+      step_mode = 1;
+      printf("step mode on\n");
+    }
+  }
+  if (argc >= 4) {
+    if (!strcmp(argv[3], "dev")) {
+      testing = 1;
+      printf("dev mode on\n");
+    } else if (!strcmp(argv[3], "step")) {
+      step_mode = 1;
+      printf("step mode on\n");
+    }
+  }
+
+  if (testing) {
+    // // create log file
+    // FILE *fp;
+    fp = fopen("log.txt", "w");
+    fprintf(fp, "start of log file\n");
+  }
+
   memset(memory, 0, 4096);
   setASCII();
   memset(V, 0, 16);
   I = 0;
-  // SP = 0;
   memset(stack, 0, 32);
-
   srand(time(NULL));  // needs a seed for random
 
-  //displayReg();
-  if (argc != 2) {
+  if (argc < 2) {
     fprintf(stderr, "error: requires a rom\n");
     exit(0);
   }
-  // printf("%X, %u\n", 0xF000, 0x1000); // TODO REMOVE
+
   char* fileName = argv[1];
-  //dumpRom(fileName);
-  //dumpInstructions(fileName);
-
-
 
   // setup ncurses
   initscr();								// initialize screen
@@ -410,23 +374,11 @@ int main(int argc, char** argv) {
 
 
   int currentInstr;
-  // int instr_count = 0;
 
   while (1) {
 
-    // get next instruction and increment PC
+    // get next instruction
     currentInstr = (memory[PC] << 8) | memory[PC+1];
-    // PC += 2;
-
-
-    // if (testing == 1) {
-    //   mvprintw(30,0, "                  ");
-    //   mvprintw(31,0, "                  ");
-    //   mvprintw(30,0, "Instr=%d", currentInstr);
-    //   mvprintw(31,0, "Instr=%X", currentInstr);
-    //   refresh();
-    // }
-    // processInstr(currentInstr);
 
     // show register information
     if (testing == 1) {
@@ -443,15 +395,7 @@ int main(int argc, char** argv) {
         mvprintw(36,16, "step mode off");
       }
       mvprintw(36,32, "instr:%d", instr_count);
-      // // keyboard
-      // mvprintw(38,20, "123C");
-      // mvprintw(39,20, "456D");
-      // mvprintw(40,20, "789E");
-      // mvprintw(41,20, "A0BF");
-      // // show keys pressed
-      // if (keyboard & 2 == 2) {
-      //   mvprintw(38,20, "#");
-      // }
+
       drawScreen(keyboard, 38, 20);
 
       mvprintw(37,0, "PC %X", PC);
@@ -472,31 +416,29 @@ int main(int argc, char** argv) {
     }
     processInstr(currentInstr);
 
-    // output screen info to log here
-    char displayedChar;
-    // TODO don't hardcode string size, set it to width of screen
-    char string[64] = "";
-    int i;
-    for (i = 0; i < 64; i++) {
-      string[i] = ' ';
-    }
-    string[63] = '\0';
-
-    for (i = 0; i < 64; i++) {
-      displayedChar = mvinch(35, i);
-      if (displayedChar > 31 && displayedChar <126) {
-        string[i] = displayedChar;
-      } else {
+    if (testing) {
+      // output screen info to log here
+      char displayedChar;
+      // TODO don't hardcode string size, set it to width of screen
+      char string[64] = "";
+      int i;
+      for (i = 0; i < 64; i++) {
         string[i] = ' ';
       }
+      string[63] = '\0';
+
+      for (i = 0; i < 64; i++) {
+        displayedChar = mvinch(35, i);
+        if (displayedChar > 31 && displayedChar <126) {
+          string[i] = displayedChar;
+        } else {
+          string[i] = ' ';
+        }
+      }
+      fprintf(fp, "%s\n" ,string);
+      instr_count++;
     }
-    fprintf(fp, "%s\n" ,string);
-    instr_count++;
 
-
-    // TODO remove
-    // display keyboard
-    mvprintw(50,20, "keyboard=%04X", keyboard);
     // TODO check to see how long instructions are supposed to last
     // sleep a little after the instruction is finished
     int instr_time = 800;
@@ -505,38 +447,15 @@ int main(int argc, char** argv) {
     nanosleep(&ts, NULL);   // sleep for 1/60 of a second
 
     if (step_mode) {
+      // if in step mode don't continue until there is a key press
       getch();
     }
   }
 
   endwin();									// close window
-
   return 0;
 }
 
-void init() {
-  // memset everything to 0
-  memset(memory, 0, 4096);
-  setASCII();
-  memset(V, 0, 16);
-  I = 0;
-  SP = 0;
-  memset(stack, 0, 32);
-}
-
-void displayReg() {
-  // displays the values of all the registers
-  int i = 0;
-  for (i = 0; i < 16; i++) {
-    printf("V%d %X\n", i, V[I]);
-  }
-  printf("I %X\n", I);
-  printf("PC %X\n", PC);
-  printf("SP %d\n", stack_pointer);
-  for (i = 0; i < 16; i++) {
-    printf("stack %d %X\n", i, stack[I]);
-  }
-}
 void lookupInstr(int instr) {
 
   // Annn 0xA000 to 0xAFFF
@@ -901,27 +820,24 @@ void I_Cxkk(int instr) {
 void I_Dxyn(int instr) {
   // display n bytes, starting at memory[I]
   // start at coordinates Vx, Vy (reverse for ncurses)
+  // each sprite is 8 wide and up to 15 long
   int x = (instr & 0x0F00) >> 8;
   int y = (instr & 0x00F0) >> 4;
   int n = (instr & 0x000F);
-
-  if (testing == 1) {
-    mvprintw(35,0, "I_Dxyn: display %X-byte sprite starting at (V%X, V%X)", n, x, y);
-    refresh();
-  }
-  x = V[x];
-  y = V[y];
-
-
-  // each sprite is 8 wide and up to 15 long
-  // mvaddch(0, 63, ' ' | A_REVERSE);
-
   int i = 0;
   int j = 0;
   int byte = 0;
   int bit = 0;
   char displayedChar = ' ';
   int displayedBit = 0;    // is the pixel currently being displayed?
+
+  x = V[x];
+  y = V[y];
+
+  if (testing == 1) {
+    mvprintw(35,0, "I_Dxyn: display %X-byte sprite starting at (V%X, V%X)", n, x, y);
+    refresh();
+  }
 
   // set VF to 0
   V[15] = 0;
@@ -1241,23 +1157,6 @@ int readInstr() {
     mvprintw(18,0, "n4=%X", n4);
     mvprintw(19,0, "comb=%X", instr2);
     mvprintw(20,0, "comb=%d", instr2);
-  //
-  //   mvprintw(20,0, "              ");
-  //   mvprintw(21,0, "              ");
-  //   mvprintw(22,0, "              ");
-  //   mvprintw(23,0, "              ");
-  //   mvprintw(20,0, "PC=%X", memory[PC]);
-  //   mvprintw(21,0, "PC+1=%X", memory[PC+1]);
-  //   mvprintw(22,0, "PC<<8=%X", memory[PC]<<8);
-  //   mvprintw(23,0, "PC<<8|PC+1=%X", (memory[PC]<<8)|memory[PC+1]);
-  //
-  //   mvprintw(32,0, "              ");
-  //   mvprintw(33,0, "              ");
-  //   mvprintw(34,0, "              ");
-  //   mvprintw(32,0, "Instr=%X", instr);
-  //   mvprintw(32,16, "Instr=%d", instr);
-  //   mvprintw(33,0, "%d %d", memory[PC], memory[PC+1]);
-  //   mvprintw(34,0, "%X %X", memory[PC], memory[PC+1]);
     refresh();
   }
 
@@ -1277,122 +1176,10 @@ void loadRom(char* fileName) {
   while (current < 4096 && status != 0) {
     status = read(fd, buffer, 1);
     memory[current] = buffer[0];
-
-    // printf("%X\t%X\n", current, memory[current]);
-    // printf("%c, %d\n", memory[current], current);
-    // printf("%d ", current);
-    // printHex(memory[current]);
-    // printf("\t");
-    // printBinary(memory[current]);
-    // printf("\n");
-
     current++;
   }
 
   close(fd);
-}
-
-void dumpRom(char* fileName) {
-  printf("%s\n", fileName);
-
-  int fd = open(fileName, O_RDONLY);
-
-  // set up memory
-  // 4 kb, 4096 bytes
-  char v_memory[4096];
-  // load memory from 0x200 to 0xFFF with program
-  // 512-4095
-  char buffer[1];
-  int current = 512;    // current memory address
-  int status = 1;       // equals 0 at end of file
-
-  // loads the program into memory
-  while (current < 4096 && status != 0) {
-    status = read(fd, buffer, 1);
-    v_memory[current] = buffer[0];
-
-    //printf("%c, %d\n", memory[current], current);
-    printf("%d %X\t", current, current);
-    printBinary(v_memory[current]);
-    printf("\n");
-
-    current++;
-  }
-
-  close(fd);
-}
-
-void dumpInstr(char* fileName) {
-  printf("%s Instructions\n", fileName);
-
-  int fd = open(fileName, O_RDONLY);
-
-  // set up memory
-  // 4 kb, 4096 bytes
-  char v_memory[4096];
-  // load memory from 0x200 to 0xFFF with program
-  // 512-4095
-  char buffer[1];
-  int current = 512;    // current memory address
-  int status = 1;       // equals 0 at end of file
-
-  // loads the program into memory
-  while (current < 4096 && status != 0) {
-    status = read(fd, buffer, 1);
-    v_memory[current] = buffer[0];
-    printf("%d %X\t", current, current);
-    printHex(v_memory[current]);
-    printHex(v_memory[current+1]);
-    printf("\n");
-    current +=2;
-  }
-
-  close(fd);
-}
-
-void printHex(int num) {
-  /*
-   *  convets an int value into hex and prints it
-   *  max value is 255
-   */
-
-   // get left nibble
-   int temp = num & 240;
-   temp = temp >> 4;
-   //printf("%d\n", temp);
-   if (temp < 10) {
-     printf("%d", temp);
-   } else {
-      // A is 65, 10 is already 10 so 10 + 55 = 65 or 'A'
-     printf("%c", temp + 55);
-   }
-   // get right nibble
-   temp = num & 15;
-   if (temp < 10) {
-     printf("%d", temp);
-   } else {
-      // A is 65, 10 is already 10 so 10 + 55 = 65 or 'A'
-     printf("%c", temp + 55);
-   }
-}
-
-void printBinary(int num) {
-  /*
-   *  convets an int value into hex and prints it
-   *  max value is 255
-   */
-   int i;
-   int result;
-   int prev = num;
-   for (i = 128; i > 0; i /= 2) {
-     result = num % i;
-     if (result == prev) {
-       printf("0");
-     } else {
-       printf("1");
-     }
-     prev = result;
-   }
 }
 
 unsigned int processKey(char key) {
@@ -1439,7 +1226,6 @@ unsigned int processKey(char key) {
 }
 
 void setASCII() {
-  // TODO finish
   // set the values from 0x00 to 0x1FF for fonts
   // of 0 to F
 

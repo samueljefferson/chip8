@@ -1,13 +1,6 @@
-// TODO remove
-void printHex(int num);
-void printBinary(int num);
-
-void init();
-void displayReg();
 void loadRom(char* fileName);
 int readInstr();
 void lookupInstr(int currentInstr);
-
 void setASCII();
 unsigned int processKey(char key);
 
@@ -47,7 +40,3 @@ void I_Fx29(int instr);
 void I_Fx33(int instr);
 void I_Fx55(int instr);
 void I_Fx65(int instr);
-
-// testing
-void dumpRom(char* fileName);
-void dumpInstr(char* fileName);
