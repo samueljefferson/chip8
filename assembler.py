@@ -23,6 +23,7 @@ fo_source.close()
 buffer = []
 for line in lines:
     check = line[:4]
+    # skip lines that don't start with a letter or number
     if check[0].isdigit() or check[0].isalpha():
         # print(int(check[:2], 16))
         # print(int(check[2:], 16))
