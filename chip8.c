@@ -430,7 +430,7 @@ int main(int argc, char** argv) {
 
     // show register information
     if (testing == 1) {
-      mvprintw(35,0, "                                                                           ");
+      mvprintw(35,0, "                                                                               ");
       mvprintw(36,0, "                                                         ");
       mvprintw(37,0, "                              ");
       mvprintw(38,0, "                              ");
@@ -992,47 +992,49 @@ void I_Dxyn(int instr) {
 
 void I_Ex9E(int instr) {
   // skip next instruction if key == Vx
-  int x = (instr & 0x0F00) >> 8;
-  if (testing) {
-    mvprintw(35,0, "I_Ex9E: skip next instruction if key %X is being pressed", x);
-    refresh();
-  }
-  int temp = 1;
-  temp = temp << x;
-  int temp_keyboard = keyboard;
-  if (temp_keyboard & temp == temp) {
+  int x = (instr & 0x0F00) >> 8;      // get x from instruction
+  int key = V[x];                     // get key to check from Vx
+  int key_mask = 0x01 << key;         // get keyboard mask in correct position
+  int check = keyboard & key_mask;    // check it see if the key was pressed
+
+  if (check) {                        // key was pressed, skip next instr
     PC += 4;
   } else {
-    PC += 2;
+    PC += 2;                          // key wasn't pressed, don't skip next instr
+  }
+
+  if (testing) {
+    if (check) {
+      mvprintw(35,0, "I_ExA1: skip next instruction if key %X is being pressed, it WAS pressed", key);
+    } else {
+      mvprintw(35,0, "I_ExA1: skip next instruction if key %X is being pressed, it WASN't pressed", key);
+    }
+    refresh();
   }
 }
 
 void I_ExA1(int instr) {
   // skip next instruction if key != Vx
-  int x = (instr & 0x0F00) >> 8;
-  int key = V[x];
-  // TODO check
+
+  int x = (instr & 0x0F00) >> 8;      // get x from instruction
+  int key = V[x];                     // get key to check from Vx
+  int key_mask = 0x01 << key;         // get keyboard mask in correct position
+  int check = keyboard & key_mask;    // check it see if the key was pressed
+
+  if (check) {                        // key was pressed, don't skip next instr
+    PC += 2;
+  } else {
+    PC += 4;                          // key wasn't pressed, skip next instr
+  }
+
   if (testing) {
-    mvprintw(35,0, "I_ExA1: skip next instruction if key %X isn't being pressed", key);
+    if (check) {
+      mvprintw(35,0, "I_ExA1: skip next instruction if key %X isn't being pressed, it WAS pressed", key);
+    } else {
+      mvprintw(35,0, "I_ExA1: skip next instruction if key %X isn't being pressed, it WASN't pressed", key);
+    }
     refresh();
   }
-  int temp = 0x01;
-  temp = temp << key;
-  mvprintw(43,20, "check%X", key);
-  // int temp_keyboard = keyboard;
-  // if (temp_keyboard & temp != temp) {
-  //   PC += 4;
-  // } else {
-  //   PC += 2;
-  // }
-  mvprintw(43,20, "           ");
-  if (keyboard & temp != 0) {
-    PC += 4;
-    mvprintw(43,20, "not pressed");
-  } else {
-    PC += 2;
-  }
-  mvprintw(42,20, "k%X", key);
 }
 
 void I_Fx07(int instr) {
