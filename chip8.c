@@ -9,6 +9,7 @@
 #include <ncurses.h>
 #include <pthread.h>
 #include <linux/input.h>
+#include <errno.h>
 
 #include "chip8.h"
 #define ENTER 28
@@ -34,6 +35,145 @@ int DT = 0;                    // delay timer
 int ST = 0;                    // sound timer
 
 int keyboard = 0;              // contains flags for all keys from 0-F
+int errno;
+
+int main(int argc, char** argv) {
+
+  int i = 0;
+  if (argc > 2) {
+    for (i = 1; i < argc; i++) {
+      // printf("%s\n", argv[i]);
+      if (!strcmp(argv[i], "reg")) {
+        show_reg = 1;
+      } else if (!strcmp(argv[i], "step")) {
+        step_mode = 1;
+      } else if (!strcmp(argv[i], "log")) {
+        log_mode = 1;
+      }
+    }
+  }
+
+  //create log file
+  if (log_mode) {
+    fp = fopen("log.txt", "w");
+    fprintf(fp, "start of log file\n");
+  }
+
+  memset(memory, 0, 4096);
+  setASCII();
+  memset(V, 0, 16);
+  I = 0;
+  memset(stack, 0, 32);
+  srand(time(NULL));  // needs a seed for random
+
+  if (argc < 2) {
+    fprintf(stderr, "error: requires a rom\n");
+    exit(0);
+  }
+
+  char* fileName = argv[1];
+  // TODO try to open file, if unable give error
+
+  // setup ncurses
+  initscr();								// initialize screen
+  raw();										// raw mode
+  noecho();                 // key presses aren't put on screen
+  curs_set(0);              // hide cursor
+
+  // load the rom
+  loadRom(fileName);
+
+  // create a thread for reading keyboard input
+  pthread_t kb_id;
+  pthread_create(&kb_id, NULL, kb_input, NULL);
+
+  // create a thread for timers
+  pthread_t timer_id;
+  pthread_create(&timer_id, NULL, timer_thread, NULL);
+
+  int currentInstr;
+
+  while (1) {
+
+    // get next instruction
+    currentInstr = (memory[PC] << 8) | memory[PC+1];
+
+    // show register information
+    if (show_reg == 1) {
+      mvprintw(35,0, "                                                                               ");
+      mvprintw(36,0, "                                                         ");
+      mvprintw(37,0, "                              ");
+      mvprintw(38,0, "                              ");
+      mvprintw(39,0, "                              ");
+
+      mvprintw(36,0, "Instr=%X", currentInstr);
+      if (step_mode) {
+        mvprintw(36,16, "step mode on ");
+      } else {
+        mvprintw(36,16, "step mode off");
+      }
+      mvprintw(36,32, "instr:%d", instr_count);
+
+      drawScreen(keyboard, 38, 20);
+
+      mvprintw(37,0, "PC %X", PC);
+      mvprintw(37,10, "SP %X", stack_pointer);
+      mvprintw(38,0, "I %X", I);
+      mvprintw(38,10, "     ");
+      mvprintw(38,10, "DT %X", DT);
+      mvprintw(39,10, "     ");
+      mvprintw(39,10, "ST %X", ST);
+      int col = 39;
+      for (i = 0; i < 16; i++) {
+        mvprintw(39+i,0, "      ");
+        mvprintw(39+i,0, "V%X %X", i, V[i]);
+      }
+      refresh();
+
+    }
+    processInstr(currentInstr);
+
+    // TODO figure out if log file should be kept
+    if (log_mode) {
+      // output screen info to log here
+      char displayedChar;
+      // TODO don't hardcode string size, set it to width of screen
+      char string[64] = "";
+      int i;
+      for (i = 0; i < 64; i++) {
+        string[i] = ' ';
+      }
+      string[63] = '\0';
+
+      for (i = 0; i < 64; i++) {
+        displayedChar = mvinch(35, i);
+        if (displayedChar > 31 && displayedChar < 126) {
+          string[i] = displayedChar;
+        } else {
+          string[i] = ' ';
+        }
+      }
+      fprintf(fp, "%s\n" ,string);
+      instr_count++;
+    }
+
+
+    // TODO check to see how long instructions are supposed to last
+    // sleep a little after the instruction is finished
+    int instr_time = 800;
+    long instr_delay = 1000000000 / instr_time;
+    struct timespec ts = {0, instr_delay};
+    nanosleep(&ts, NULL);   // sleep for 1/60 of a second
+
+    if (step_mode) {
+      // if in step mode don't continue until there is a key press
+      getch();
+    }
+  }
+
+  endwin();									// close window
+  return 0;
+}
 
 void* timer_thread() {
   // Decrement DT and ST 60 times a second if they don't equal 0
@@ -216,9 +356,11 @@ void *kb_input(void *ptr) {
     int temp = -1;
 
     if (ev.type == EV_KEY && ev.value >= 0 && ev.value <= 2) {
+      // if Esc is pressed
       if ((int)ev.code == 1) {
         echo();                   // turn echo back on
         endwin();									// close window
+        // TODO end threads
         exit(0);
       }
 
@@ -310,146 +452,6 @@ int drawScreen(int keyboard, int y, int x)
         break;
     }
   }
-}
-
-int main(int argc, char** argv) {
-
-  int i = 0;
-  if (argc > 2) {
-    for (i = 1; i < argc; i++) {
-      // printf("%s\n", argv[i]);
-      if (!strcmp(argv[i], "reg")) {
-        show_reg = 1;
-      } else if (!strcmp(argv[i], "step")) {
-        step_mode = 1;
-      } else if (!strcmp(argv[i], "log")) {
-        log_mode = 1;
-      }
-    }
-  }
-
-  //create log file
-  if (log_mode) {
-    fp = fopen("log.txt", "w");
-    fprintf(fp, "start of log file\n");
-  }
-
-  memset(memory, 0, 4096);
-  setASCII();
-  memset(V, 0, 16);
-  I = 0;
-  memset(stack, 0, 32);
-  srand(time(NULL));  // needs a seed for random
-
-  if (argc < 2) {
-    fprintf(stderr, "error: requires a rom\n");
-    exit(0);
-  }
-
-  char* fileName = argv[1];
-  // TODO try to open file, if unable give error
-
-  // setup ncurses
-  initscr();								// initialize screen
-  raw();										// raw mode
-  noecho();                 // key presses aren't put on screen
-  curs_set(0);              // hide cursor
-
-  // create a thread for reading keyboard input
-  pthread_t kb_id;
-  pthread_create(&kb_id, NULL, kb_input, NULL);
-
-  // create a thread for timers
-  pthread_t timer_id;
-  pthread_create(&timer_id, NULL, timer_thread, NULL);
-
-  // load the rom
-  endwin();
-  loadRom(fileName);
-
-
-  int currentInstr;
-
-  while (1) {
-
-    // get next instruction
-    currentInstr = (memory[PC] << 8) | memory[PC+1];
-
-    // show register information
-    if (show_reg == 1) {
-      mvprintw(35,0, "                                                                               ");
-      mvprintw(36,0, "                                                         ");
-      mvprintw(37,0, "                              ");
-      mvprintw(38,0, "                              ");
-      mvprintw(39,0, "                              ");
-
-      mvprintw(36,0, "Instr=%X", currentInstr);
-      if (step_mode) {
-        mvprintw(36,16, "step mode on ");
-      } else {
-        mvprintw(36,16, "step mode off");
-      }
-      mvprintw(36,32, "instr:%d", instr_count);
-
-      drawScreen(keyboard, 38, 20);
-
-      mvprintw(37,0, "PC %X", PC);
-      mvprintw(37,10, "SP %X", stack_pointer);
-      mvprintw(38,0, "I %X", I);
-      mvprintw(38,10, "     ");
-      mvprintw(38,10, "DT %X", DT);
-      mvprintw(39,10, "     ");
-      mvprintw(39,10, "ST %X", ST);
-      int col = 39;
-      for (i = 0; i < 16; i++) {
-        mvprintw(39+i,0, "      ");
-        mvprintw(39+i,0, "V%X %X", i, V[i]);
-      }
-      refresh();
-
-    }
-    processInstr(currentInstr);
-
-    // TODO figure out if log file should be kept
-    if (log_mode) {
-      // output screen info to log here
-      char displayedChar;
-      // TODO don't hardcode string size, set it to width of screen
-      char string[64] = "";
-      int i;
-      for (i = 0; i < 64; i++) {
-        string[i] = ' ';
-      }
-      string[63] = '\0';
-
-      for (i = 0; i < 64; i++) {
-        displayedChar = mvinch(35, i);
-        if (displayedChar > 31 && displayedChar < 126) {
-          string[i] = displayedChar;
-        } else {
-          string[i] = ' ';
-        }
-      }
-      fprintf(fp, "%s\n" ,string);
-      instr_count++;
-    }
-
-
-    // TODO check to see how long instructions are supposed to last
-    // sleep a little after the instruction is finished
-    int instr_time = 800;
-    long instr_delay = 1000000000 / instr_time;
-    struct timespec ts = {0, instr_delay};
-    nanosleep(&ts, NULL);   // sleep for 1/60 of a second
-
-    if (step_mode) {
-      // if in step mode don't continue until there is a key press
-      getch();
-    }
-  }
-
-  endwin();									// close window
-  return 0;
 }
 
 void lookupInstr(int instr) {
@@ -667,11 +669,12 @@ void I_8xy4(int instr) {
     refresh();
   }
   V[x] = sum & 0x00FF;  // TODO CHECK
-  if (sum > 0xFF) {
-    V[15] = 1;
-  } else {
-    V[15] = 0;
-  }
+  // if (sum > 0xFF) {
+  //   V[15] = 1;
+  // } else {
+  //   V[15] = 0;
+  // }
+  V[15] = (sum > 0xFF) ? 1 : 0;
   PC += 2;
 }
 
@@ -680,11 +683,12 @@ void I_8xy5(int instr) {
   // if Vx > Vy then VF = 0
   int x = (instr & 0x0F00) >> 8;
   int y = (instr & 0x00F0) >> 4;
-  if (V[x] > V[y]) {
-    V[15] = 1;
-  } else {
-    V[15] = 0;
-  }
+  // if (V[x] > V[y]) {
+  //   V[15] = 1;
+  // } else {
+  //   V[15] = 0;
+  // }
+  V[15] = (V[x] > V[y]) ? 1 : 0;
   V[x] -= V[y];
   V[x] = V[x] & 0x00FF;   // TODO CHECK
 
@@ -1159,8 +1163,23 @@ int readInstr() {
 }
 
 void loadRom(char* fileName) {
-  // printf("%s\n", fileName);
+  // TODO make sure rom is loaded before new threads are created
+
+  // make sure filename ends in .ch8
+  char *ext = fileName + strlen(fileName) - 4;
+  if (strcmp(ext, ".ch8")) {
+    endwin();
+    printf("error: file doesn't have .ch8 extension\n");
+    exit(0);
+  }
+
   int fd = open(fileName, O_RDONLY);
+  if (fd == -1) {
+    endwin();
+    printf("error opening %s: %s\n", fileName, strerror(errno));
+    exit(0);
+  }
+
 
   char buffer[1];
   int current = 512;    // current memory address

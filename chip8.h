@@ -1,3 +1,9 @@
+void* timer_thread();
+int processInstr(int instr);
+void *kb_input(void *ptr);
+int drawScreen(int keyboard, int y, int x);
+
+
 void loadRom(char* fileName);
 int readInstr();
 void lookupInstr(int currentInstr);
