@@ -15,7 +15,7 @@
 #define SPACE 57
 // sudo ./chip8 Breakout.ch8
 
-int testing = 0;
+int testing = 1;
 int step_mode = 0;
 int instr_count = 0;
 // file pointer for log file
@@ -45,6 +45,7 @@ void* timer_thread() {
       DT--;
     }
     if (ST != 0) {
+      printf("\a");
       ST--;
     }
   }
@@ -312,6 +313,8 @@ int drawScreen(int keyboard, int y, int x)
 
 int main(int argc, char** argv) {
 
+  // TODO make this a for loop over argc
+  /*
   // check for dev and step
   if (argc >= 3) {
     // if (argv[3] == 'dev' || argv[4] == 'dev') {
@@ -332,13 +335,17 @@ int main(int argc, char** argv) {
       printf("step mode on\n");
     }
   }
+  */
 
+  /*
   if (testing) {
     // // create log file
     // FILE *fp;
     fp = fopen("log.txt", "w");
     fprintf(fp, "start of log file\n");
   }
+  */
+
 
   memset(memory, 0, 4096);
   setASCII();
@@ -408,7 +415,7 @@ int main(int argc, char** argv) {
       int col = 39;
       int i = 0;
       for (i = 0; i < 16; i++) {
-        mvprintw(39+i,0, "            ");
+        mvprintw(39+i,0, "      ");
         mvprintw(39+i,0, "V%X %X", i, V[i]);
       }
       refresh();
@@ -416,6 +423,8 @@ int main(int argc, char** argv) {
     }
     processInstr(currentInstr);
 
+    // TODO figure out if log file should be kept
+    /*
     if (testing) {
       // output screen info to log here
       char displayedChar;
@@ -438,6 +447,7 @@ int main(int argc, char** argv) {
       fprintf(fp, "%s\n" ,string);
       instr_count++;
     }
+    */
 
     // TODO check to see how long instructions are supposed to last
     // sleep a little after the instruction is finished
@@ -830,6 +840,8 @@ void I_Dxyn(int instr) {
   int bit = 0;
   char displayedChar = ' ';
   int displayedBit = 0;    // is the pixel currently being displayed?
+  chtype filled = ' ' | A_REVERSE;  // filled in character
+  chtype blank = ' ';               // empty character
 
   x = V[x];
   y = V[y];
@@ -865,13 +877,10 @@ void I_Dxyn(int instr) {
       int row = y+i;
       int col = x+j;
 
-      // TODO should this be use the &
-      // displayedChar = mvinch(row, col) & A_CHARTEXT;
-      displayedChar = mvinch(row, col);
-      if (displayedChar == ' ') {
-        displayedBit = 0;
-      } else {
+      if (mvinch(row, col) == filled) {
         displayedBit = 1;
+      } else {
+        displayedBit = 0;
       }
 
       // mask for correct bit of j
@@ -887,15 +896,14 @@ void I_Dxyn(int instr) {
 
       if (bit) {
         // display bit
-        // mvaddch(row, col, ' ' | A_REVERSE);
-        mvaddch(row, col, '#');
+        mvaddch(row, col, filled);
       } else {
         // if bit was displayed before and is being erased set VF to 1
         if (displayedBit == 1) {
           V[15] = 1;
         }
         // display nothing
-        mvaddch(row, col, ' ');
+        mvaddch(row, col, blank);
       }
       refresh();
       if (step_mode) {
