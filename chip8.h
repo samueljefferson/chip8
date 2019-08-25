@@ -1,3 +1,4 @@
+void signal_handler (int sig);
 void* timer_thread();
 int processInstr(int instr);
 void *kb_input(void *ptr);

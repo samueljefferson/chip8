@@ -1,3 +1,11 @@
+/*  TODO list
+  replace signal with sigation()
+  figure out how to not output keypressess on return to terminal
+  double check instructions
+  check all other TODO's
+  make the delay a command line argument
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,6 +18,7 @@
 #include <pthread.h>
 #include <linux/input.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "chip8.h"
 #define ENTER 28
@@ -20,14 +29,13 @@ int show_reg = 0;
 int step_mode = 0;
 int log_mode = 0;
 int instr_count = 0;
-// file pointer for log file
-FILE *fp;
+
+FILE *fp;                      // file pointer for log file
 
 unsigned char memory[4096];    // 4096 bytes of memory
 unsigned char V[16];           // 16 8 bit registers
 unsigned short I;              // 16 bit register
 unsigned short PC = 0x200;     // program counter is 16 bit
-// TODO should SP default to 0? and be a char
 char SP;                       // SP is 8 bit
 char stack_pointer;
 unsigned short stack[16];      // stack in 16 16 bit values
@@ -36,10 +44,15 @@ int ST = 0;                    // sound timer
 
 int keyboard = 0;              // contains flags for all keys from 0-F
 int errno;
+int end_program = 0;          // set to 1 by the signal handler
 
 int main(int argc, char** argv) {
+  // TODO replace with sigation()
+  // sigaction(SIGINT, signal_handler);
+  signal(SIGINT, signal_handler);
 
   int i = 0;
+  // process command line arguments
   if (argc > 2) {
     for (i = 1; i < argc; i++) {
       // printf("%s\n", argv[i]);
@@ -55,8 +68,11 @@ int main(int argc, char** argv) {
 
   //create log file
   if (log_mode) {
+    // TODO remove
+    printf("log mode on\n");
     fp = fopen("log.txt", "w");
     fprintf(fp, "start of log file\n");
+
   }
 
   memset(memory, 0, 4096);
@@ -72,11 +88,10 @@ int main(int argc, char** argv) {
   }
 
   char* fileName = argv[1];
-  // TODO try to open file, if unable give error
 
   // setup ncurses
   initscr();								// initialize screen
-  raw();										// raw mode
+  // raw();										// raw mode
   noecho();                 // key presses aren't put on screen
   curs_set(0);              // hide cursor
 
@@ -93,7 +108,7 @@ int main(int argc, char** argv) {
 
   int currentInstr;
 
-  while (1) {
+  while (!end_program) {
 
     // get next instruction
     currentInstr = (memory[PC] << 8) | memory[PC+1];
@@ -137,15 +152,15 @@ int main(int argc, char** argv) {
     if (log_mode) {
       // output screen info to log here
       char displayedChar;
-      // TODO don't hardcode string size, set it to width of screen
-      char string[64] = "";
+      char string[64];
       int i;
+      // TODO use memset here
       for (i = 0; i < 64; i++) {
         string[i] = ' ';
       }
       string[63] = '\0';
 
-      for (i = 0; i < 64; i++) {
+      for (i = 0; i < 63; i++) {
         displayedChar = mvinch(35, i);
         if (displayedChar > 31 && displayedChar < 126) {
           string[i] = displayedChar;
@@ -153,7 +168,7 @@ int main(int argc, char** argv) {
           string[i] = ' ';
         }
       }
-      fprintf(fp, "%s\n" ,string);
+      fprintf(fp, "%d: %s\n", instr_count, string);
       instr_count++;
     }
 
@@ -171,8 +186,20 @@ int main(int argc, char** argv) {
     }
   }
 
-  endwin();									// close window
+  endwin();
+  if (log_mode) {
+    // close log file
+    fclose(fp);
+    // change file permissions for log file
+    chmod("log.txt", 0777);
+  }
+  pthread_join(kb_id, NULL);
+  pthread_join(timer_id, NULL);
   return 0;
+}
+
+void signal_handler (int sig) {
+  end_program = 1;
 }
 
 void* timer_thread() {
@@ -180,7 +207,7 @@ void* timer_thread() {
   long sixty_hz = 1000000000 / 60;
   struct timespec ts = {0, sixty_hz};
 
-  while (1) {
+  while (!end_program) {
     nanosleep(&ts, NULL);   // sleep for 1/60 of a second
     if (DT != 0) {
       DT--;
@@ -190,6 +217,7 @@ void* timer_thread() {
       ST--;
     }
   }
+  return NULL;
 }
 
 int processInstr(int instr) {
@@ -350,7 +378,7 @@ void *kb_input(void *ptr) {
   int fd;
   fd = open(dev, O_RDONLY);
 
-  while (1) {
+  while (!end_program) {
     // get key events
     n = read(fd, &ev, sizeof ev);
     int temp = -1;
@@ -358,10 +386,7 @@ void *kb_input(void *ptr) {
     if (ev.type == EV_KEY && ev.value >= 0 && ev.value <= 2) {
       // if Esc is pressed
       if ((int)ev.code == 1) {
-        echo();                   // turn echo back on
-        endwin();									// close window
-        // TODO end threads
-        exit(0);
+        raise(SIGINT);
       }
 
       // // if a key is pressed
@@ -390,7 +415,7 @@ void *kb_input(void *ptr) {
     }
   }
 
-  return 0;
+  return NULL;
 }
 
 int drawScreen(int keyboard, int y, int x)
@@ -606,7 +631,7 @@ void I_7xkk(int instr) {
   }
   V[x] += kk;
 
-  // TODO mattmik, if V[x] > 255 then mod it with 255
+  // TODO check instruction, if V[x] > 255 then mod it with 255
   // V[x] = V[x] & 0x00FF;
   V[x] = V[x] % 0x00FF;
   PC += 2;
@@ -1094,7 +1119,7 @@ void I_Fx55(int instr) {
 
   }
 
-  // TODO mattmik
+  // TODO check instruction
   I = I + x + 1;
 
   if (show_reg) {
@@ -1115,7 +1140,8 @@ void I_Fx65(int instr) {
     V[i] = memory[I + i];
   }
   int old_I = I;
-  // TODO mattmik
+
+  // TODO check instruction
   I = I + x + 1;
 
   if (show_reg) {

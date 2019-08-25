@@ -1,12 +1,18 @@
 # Chip-8 emulator
-## Only tested in Ubuntu
+Only tested in Ubuntu, and on a laptop
+
 Run makefile first, then run with sudo ./chip8 romName.ch8
 
-View the registers with sudo ./chip8 romName.ch8 dev
+The makefile will resize the terminal, run make clean to revert back to default
+terminal size and delete the compiled program.  Run make reg to resize the emulator to allow the registers to be shown on screen.
 
-Enable step mode with sudo ./chip8 romName.ch8 step (this won't work with programs that require key presses)
+## command line arguments
 
-Both options can be combined
+reg: makes register visible, requires make reg to be seen
+
+step: enables step mode, breaks programs that requires key presses
+
+log: outputs all instructions to a log.txt file, requires reg
 
 sudo is required because the file platform-i8042-serio-0-event-kbd from /dev/input/by-path/ is read to tell if a key is being held down
 
