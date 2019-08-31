@@ -14,6 +14,8 @@ step: enables step mode, breaks programs that requires key presses
 
 log: outputs all instructions to a log.txt file, requires reg
 
+delay=x: x is time in nanoseconds to wait after each instruction is processed, defaults to 1250000
+
 sudo is required because the file platform-i8042-serio-0-event-kbd from /dev/input/by-path/ is read to tell if a key is being held down
 
 ## Chip-8 assembler

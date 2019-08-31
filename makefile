@@ -7,6 +7,7 @@ clean:
 	bash -c "resize -s 24 80"
 	'clear'
 	rm chip8
+	rm log.txt
 
 reg:
 	bash -c "resize -s 55 64"

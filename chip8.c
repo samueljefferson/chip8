@@ -29,6 +29,7 @@ int show_reg = 0;
 int step_mode = 0;
 int log_mode = 0;
 int instr_count = 0;
+long instr_delay = 1250000;              // default value of delay, in nanoseconds
 
 FILE *fp;                      // file pointer for log file
 
@@ -54,9 +55,27 @@ int main(int argc, char** argv) {
   int i = 0;
   // process command line arguments
   if (argc > 2) {
-    for (i = 1; i < argc; i++) {
-      // printf("%s\n", argv[i]);
-      if (!strcmp(argv[i], "reg")) {
+    for (i = 2; i < argc; i++) {
+      if (strlen(argv[i]) > 6) {
+        // compare the first 5 chars and check for delay
+        char pattern[] = "delay=";
+        char *match;
+
+        match = strstr(argv[i], pattern);
+
+        if (match) {
+            // get parts of string after delay=
+            int len = strlen(argv[i]) - 5; // +1 to include \0
+            char delay_str[len];
+            delay_str[len - 1] = '\0';
+            int j;
+
+            for (j=6; j < strlen(argv[i]); j++) {
+              delay_str[j-6] = argv[i][j];
+            }
+            instr_delay = atoi(delay_str);
+        }
+      } else if (!strcmp(argv[i], "reg")) {
         show_reg = 1;
       } else if (!strcmp(argv[i], "step")) {
         step_mode = 1;
@@ -91,7 +110,7 @@ int main(int argc, char** argv) {
 
   // setup ncurses
   initscr();								// initialize screen
-  // raw();										// raw mode
+  raw();										// raw mode
   noecho();                 // key presses aren't put on screen
   curs_set(0);              // hide cursor
 
@@ -172,13 +191,12 @@ int main(int argc, char** argv) {
       instr_count++;
     }
 
-
     // TODO check to see how long instructions are supposed to last
+
     // sleep a little after the instruction is finished
-    int instr_time = 800;
-    long instr_delay = 1000000000 / instr_time;
+    // instr_delay is measured in nanoseconds
     struct timespec ts = {0, instr_delay};
-    nanosleep(&ts, NULL);   // sleep for 1/60 of a second
+    nanosleep(&ts, NULL);
 
     if (step_mode) {
       // if in step mode don't continue until there is a key press
@@ -195,6 +213,7 @@ int main(int argc, char** argv) {
   }
   pthread_join(kb_id, NULL);
   pthread_join(timer_id, NULL);
+  // TODO clear input from terminal
   return 0;
 }
 
