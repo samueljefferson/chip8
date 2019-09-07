@@ -1,0 +1,57 @@
+# sprites are 5 pixels tall, 4 wide
+# HELLO WORLD
+# 9 chars
+# E, 0=O already exist
+# H,L,W,R,L,D 6*5= 30 bytes needed
+B220    # jump to 220 start of program
+9090    # H
+f090
+9000
+8080    # L
+8080
+f000
+8199    # W twice as wide
+a5c3
+8100
+f090    # R
+e0b0
+9000
+e090    #D
+9090
+e000
+# start of program
+# V[1] used for x
+# V[2] used for y
+# V[3] used for misc
+A202    # I=202, location of H sprite
+6101    # 6xkk V[x]=kk V[1]=01
+6201    # V[2]=01
+D125    # draw H from 1,1
+6106    # V[1]=6
+630E    # v[3]=E
+F329    # I=location of V[3]=E
+D125    # draw E from 1,6
+610B    # V[1]=0B
+A208    # I=208 location of L
+D125    # draw L from 1,B
+6110    #V[1]=10
+D125    # draw L from 1,10
+F429    # I=V[4]=0 for O
+6115    #V[1]=15
+D125    # draw O from 1,15
+# start of WORLD
+A20E    # I=20E location of W
+611E    # V[1]=1E
+D125    # draw W from 1,1E
+F429    # I=V[4]=0 for )
+6127    # v[1]=27
+D125    # draw O from 1,27
+A214    # I=214 location of R
+612C    # v[1]=2C
+D125    # draw R from 1,2C
+A208    # I=208 location of L
+6131    # v[1]=31
+D125    # draw L from 1,31
+A21A    # I= 21A location of D
+6136    # V[1]=36
+D125    # draw D from 1,36
