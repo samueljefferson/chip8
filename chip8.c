@@ -1,11 +1,3 @@
-/*  TODO list
-  replace signal with sigation()
-  figure out how to not output keypressess on return to terminal
-  double check instructions
-  check all other TODO's
-  make the delay a command line argument
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,7 +15,6 @@
 #include "chip8.h"
 #define ENTER 28
 #define SPACE 57
-// sudo ./chip8 Breakout.ch8
 
 int show_reg = 0;
 int step_mode = 0;
@@ -48,8 +39,6 @@ int errno;
 int end_program = 0;          // set to 1 by the signal handler
 
 int main(int argc, char** argv) {
-  // TODO replace with sigation()
-  // sigaction(SIGINT, signal_handler);
   signal(SIGINT, signal_handler);
 
   int i = 0;
@@ -87,7 +76,6 @@ int main(int argc, char** argv) {
 
   //create log file
   if (log_mode) {
-    // TODO remove
     printf("log mode on\n");
     fp = fopen("log.txt", "w");
     fprintf(fp, "start of log file\n");
@@ -1091,15 +1079,10 @@ void I_Fx29(int instr) {
   x = V[x];
   I = x*5;
 
-  // TODO
   if (show_reg) {
-    // mvprintw(35,0, "I_Fx29 Unfinished Instruction");
-    // mvprintw(34,0, "                    ");
-    // mvprintw(34,0, "x=%X, I=%D", x, I);
     mvprintw(35,0, "I_Fx29: I = V[%x]=%X, %X*5 = %X", x, V[x], V[x], V[x]*5);
     refresh();
   }
-  // getch();
   PC += 2;
 
 }
@@ -1160,7 +1143,6 @@ void I_Fx65(int instr) {
   }
   int old_I = I;
 
-  // TODO check instruction
   I = I + x + 1;
 
   if (show_reg) {
