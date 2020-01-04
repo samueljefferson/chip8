@@ -1,4 +1,5 @@
 # Chip-8 emulator
+![alt text](hello_world_screenshot.png "Chip-8 emulator screen shot")
 Only tested in Ubuntu, and on a laptop
 
 Run makefile first, then run with sudo ./chip8 romName.ch8
