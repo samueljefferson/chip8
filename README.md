@@ -1,5 +1,21 @@
 # Chip-8 emulator
+
+* 8-bit emulator written in C using ncurses for terminal display
+* Used multiple threads for implementing timers and reading keyboard input
+* Can run pre-existing Chip-8 programs
+
+
+![alt text](game1_screenshot.png "Chip-8 emulator screen shot")
+
+Chip-8 emulator running another game
+
+![alt text](game2_screenshot.png "Chip-8 emulator screen shot")
+
+Chip-8 emulator running a game
+
 ![alt text](hello_world_screenshot.png "Chip-8 emulator screen shot")
+
+Chip-8 emulator running a hello world program
 
 Only tested in Ubuntu, and on a laptop
 
